@@ -80,7 +80,7 @@ const orderSchema = new mongoose.Schema(
     timeline: { type: [timelineSchema], default: [] },
     shippingMethod: { type: String, default: '' },
     payment: {
-      method: { type: String, enum: ['esewa', 'khalti', ''], default: '' },
+      method: { type: String, enum: ['esewa', 'khalti', 'cod', ''], default: '' },
       status: { type: String, default: 'pending' },
       gatewayIds: { type: mongoose.Schema.Types.Mixed, default: {} },
     },

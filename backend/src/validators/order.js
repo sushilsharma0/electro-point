@@ -10,7 +10,7 @@ export const checkoutQuoteSchema = body({
 export const createOrderSchema = body({
   addressId: objectId,
   shippingMethod: z.string().trim().min(1).max(40),
-  paymentMethod: z.enum(['esewa', 'khalti']),
+  paymentMethod: z.enum(['esewa', 'khalti', 'cod']),
   phone: z.string().trim().min(7).max(20).optional(),
   email: z.string().trim().email().optional(),
   totalPaisa: z.any().optional(),

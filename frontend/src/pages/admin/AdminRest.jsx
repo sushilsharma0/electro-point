@@ -519,6 +519,13 @@ export function AdminSettingsPage() {
         />
       </label>
       <label className="flex items-center justify-between text-sm">
+        Cash on delivery enabled
+        <Switch
+          checked={form.payments?.codEnabled !== false}
+          onCheckedChange={(v) => setForm({ ...form, payments: { ...form.payments, codEnabled: v } })}
+        />
+      </label>
+      <label className="flex items-center justify-between text-sm">
         Maintenance
         <Switch checked={Boolean(form.maintenanceMode)} onCheckedChange={(v) => setForm({ ...form, maintenanceMode: v })} />
       </label>

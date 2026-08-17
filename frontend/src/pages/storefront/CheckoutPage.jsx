@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { checkoutApi } from '@/lib/api';
+import { accountApi, checkoutApi } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
 import { useSettings } from '@/hooks/useCatalog';
@@ -18,7 +18,8 @@ import { Seo } from '@/components/Seo';
 import { EmptyState } from '@/pages/errors/EmptyState';
 import { toast } from 'sonner';
 import { cn } from '@/lib/cn';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Banknote } from 'lucide-react';
 
 const STEPS = ['Info', 'Address', 'Shipping', 'Summary', 'Payment', 'Done'];
 
@@ -43,12 +44,14 @@ export function CheckoutPage() {
   const { user } = useAuth();
   const { cart, items } = useCart();
   const { settings } = useSettings();
+  const qc = useQueryClient();
   const [step, setStep] = useState(0);
   const [info, setInfo] = useState({ name: user?.name || '', email: user?.email || '', phone: user?.phone || '' });
   const [address, setAddress] = useState(null);
   const [shippingMethod, setShippingMethod] = useState(settings.shipping?.[0]?.code || 'standard');
   const [order, setOrder] = useState(null);
   const [paying, setPaying] = useState(false);
+  const [placedMethod, setPlacedMethod] = useState(null);
 
   const quote = useQuery({
     queryKey: ['checkout-quote', shippingMethod],
@@ -127,23 +130,49 @@ export function CheckoutPage() {
   };
 
   const placeOrder = async (method) => {
+    if (paying) return;
+    setPaying(true);
+    setPlacedMethod(method);
     try {
+      let addressId = address?._id || address?.id;
+      if (!addressId) {
+        const saved = await accountApi.createAddress({
+          fullName: address.fullName,
+          phone: address.phone,
+          line1: address.line1,
+          line2: address.line2 || '',
+          city: address.city,
+          state: address.state || '',
+          postalCode: address.postalCode || '',
+          country: address.country || 'Nepal',
+          isDefault: true,
+        });
+        addressId = saved._id || saved.id;
+        setAddress({ ...address, _id: addressId });
+      }
       const created = await checkoutApi.createOrder({
         email: info.email,
         phone: info.phone,
-        name: info.name,
-        address,
         shippingMethod,
         paymentMethod: method,
+        addressId,
       });
       const ord = created.order || created;
       setOrder(ord);
       setStep(5);
       const oid = ord._id || ord.id;
+      if (method === 'cod') {
+        await qc.invalidateQueries({ queryKey: ['cart'] });
+        toast.success('Order placed. Pay cash on delivery.');
+        setPaying(false);
+        return;
+      }
       if (method === 'esewa') await submitEsewa(oid);
       if (method === 'khalti') await submitKhalti(oid);
     } catch (err) {
+      setPlacedMethod(null);
       toast.error(err.message || 'Could not create order');
+      setPaying(false);
     }
   };
 
@@ -200,7 +229,9 @@ export function CheckoutPage() {
         {step === 4 ? (
           <div>
             <h2 className="font-display text-lg font-semibold">Payment method</h2>
-            <p className="mt-2 text-sm text-muted">You will be redirected to the gateway. Success is confirmed only after server verification.</p>
+            <p className="mt-2 text-sm text-muted">
+              eSewa and Khalti redirect to their gateways. Cash on delivery is confirmed now and collected when your order arrives.
+            </p>
             <div className="mt-6 flex flex-col gap-3">
               {settings.payments?.esewaEnabled !== false ? (
                 <Button type="button" size="lg" disabled={paying} onClick={() => placeOrder('esewa')}>
@@ -212,11 +243,28 @@ export function CheckoutPage() {
                   Pay with Khalti
                 </Button>
               ) : null}
+              {settings.payments?.codEnabled !== false ? (
+                <Button type="button" size="lg" variant="outline" disabled={paying} onClick={() => placeOrder('cod')}>
+                  <Banknote aria-hidden="true" />
+                  Cash on delivery
+                </Button>
+              ) : null}
             </div>
             <Button type="button" variant="ghost" className="mt-4" onClick={() => setStep(3)}>Back</Button>
           </div>
         ) : null}
-        {step === 5 ? (
+        {step === 5 && placedMethod === 'cod' ? (
+          <div>
+            <h2 className="font-display text-lg font-semibold">Order confirmed</h2>
+            <p className="mt-2 text-sm text-muted">
+              {order?.orderNumber} is confirmed. Pay cash to the courier when your order arrives.
+            </p>
+            <Button asChild className="mt-6">
+              <Link to={`/account/orders/${order?._id || order?.id}`}>View order</Link>
+            </Button>
+          </div>
+        ) : null}
+        {step === 5 && placedMethod !== 'cod' ? (
           <div>
             <h2 className="font-display text-lg font-semibold">Redirecting to payment</h2>
             <p className="mt-2 text-sm text-muted">

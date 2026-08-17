@@ -16,7 +16,7 @@ export function Footer() {
         <div>
           <p className="font-display text-lg font-semibold">ElectroPoint</p>
           <p className="mt-3 max-w-xs text-sm text-muted">
-            Professional electronics. Specified clearly, priced in NPR, paid with eSewa or Khalti.
+            Professional electronics. Specified clearly, priced in NPR, paid with eSewa, Khalti, or cash on delivery.
           </p>
         </div>
         <div>

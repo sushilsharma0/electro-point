@@ -14,6 +14,7 @@ export async function publicSettings() {
     payments: {
       esewaEnabled: s.payments?.esewaEnabled !== false,
       khaltiEnabled: s.payments?.khaltiEnabled !== false,
+      codEnabled: s.payments?.codEnabled !== false,
     },
     seo: s.seo,
     homepage: s.homepage,
@@ -39,11 +40,12 @@ export async function adminUpdate(payload) {
     }
   }
   if (payload.payments) {
-    const { esewaEnabled, khaltiEnabled, esewaProductCode } = payload.payments;
+    const { esewaEnabled, khaltiEnabled, codEnabled, esewaProductCode } = payload.payments;
     payload.payments = {
       ...s.payments.toObject?.() || s.payments,
       ...(esewaEnabled != null ? { esewaEnabled } : {}),
       ...(khaltiEnabled != null ? { khaltiEnabled } : {}),
+      ...(codEnabled != null ? { codEnabled } : {}),
       ...(esewaProductCode != null ? { esewaProductCode } : {}),
     };
   }

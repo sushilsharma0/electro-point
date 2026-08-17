@@ -126,4 +126,30 @@ describe('orders, inventory, payments', { timeout: 120_000 }, () => {
     assert.notEqual(order.status, 'confirmed');
     assert.equal(order.status, 'payment_failed');
   });
+
+  it('places a cash-on-delivery order without a gateway', async () => {
+    const product = await createProduct({ pricePaisa: 900000, stock: 6, reservedStock: 0 });
+    const api = client(app);
+    const { addressId } = await checkoutReady(api, product);
+    const res = await api.post('/api/v1/orders').send({
+      addressId,
+      shippingMethod: 'standard',
+      paymentMethod: 'cod',
+    });
+    assert.equal(res.status, 201, res.body?.error?.message);
+    const order = res.body.data;
+    assert.equal(order.status, 'confirmed');
+    assert.equal(order.payment.method, 'cod');
+    assert.equal(order.payment.status, 'pending');
+    assert.notEqual(order.status, 'payment_pending');
+
+    const cart = await api.get('/api/v1/cart');
+    assert.equal(cart.status, 200);
+    assert.equal((cart.body.data.items || []).length, 0);
+
+    const { Product } = await import('../src/models/Product.js');
+    const fresh = await Product.findById(product._id);
+    assert.equal(fresh.stock, 5);
+    assert.equal(fresh.reservedStock, 0);
+  });
 });

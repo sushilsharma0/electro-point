@@ -92,7 +92,7 @@ export const DEFAULT_SETTINGS = {
     { code: 'standard', name: 'Standard delivery', pricePaisa: 0, eta: '2–4 days inside Kathmandu' },
     { code: 'express', name: 'Express', pricePaisa: 25000, eta: 'Next day in ring road' },
   ],
-  payments: { esewaEnabled: true, khaltiEnabled: true },
+  payments: { esewaEnabled: true, khaltiEnabled: true, codEnabled: true },
   seo: {
     title: 'ElectroPoint — Precision electronics',
     description: 'Professional electronics retailer in Nepal. Authentic devices, clear specs, eSewa and Khalti.',

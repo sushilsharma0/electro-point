@@ -75,7 +75,14 @@ export function AccountOrderDetailPage() {
     <div>
       <Seo title={`Order ${order.orderNumber}`} noindex />
       <h2 className="font-display text-xl font-semibold">{order.orderNumber}</h2>
-      <p className="mt-1 text-sm text-muted">{order.status}</p>
+      <p className="mt-1 text-sm text-muted">
+        {order.status}
+        {order.payment?.method === 'cod'
+          ? ` · Cash on delivery (${order.payment?.status || 'pending'})`
+          : order.payment?.method
+            ? ` · ${order.payment.method}`
+            : ''}
+      </p>
       <ul className="mt-6 divide-y divide-border">
         {(order.items || []).map((item, i) => (
           <li key={i} className="flex justify-between py-3 text-sm">

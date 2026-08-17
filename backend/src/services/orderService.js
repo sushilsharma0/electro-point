@@ -2,11 +2,13 @@ import crypto from 'node:crypto';
 import { Order } from '../models/Order.js';
 import { Address } from '../models/Address.js';
 import { ApiError } from '../utils/ApiError.js';
-import { quoteFromLines } from './pricingService.js';
+import { quoteFromLines, getStoreSettings } from './pricingService.js';
 import { cartLinesForCheckout } from './cartService.js';
 import * as inventory from './inventoryService.js';
 import { notify } from './notificationService.js';
 import { parsePagination, paginated } from '../utils/pagination.js';
+import { Coupon } from '../models/Coupon.js';
+import { Cart } from '../models/Cart.js';
 
 function ymd(date = new Date()) {
   const y = date.getUTCFullYear();
@@ -40,6 +42,18 @@ export async function quoteCheckout({ user, shippingMethod, couponCode, addressI
 }
 
 export async function createOrderFromCart({ user, addressId, shippingMethod, paymentMethod, phone, email }) {
+  const settings = await getStoreSettings();
+  const payments = settings.payments || {};
+  if (paymentMethod === 'esewa' && payments.esewaEnabled === false) {
+    throw ApiError.unprocessable('eSewa is disabled');
+  }
+  if (paymentMethod === 'khalti' && payments.khaltiEnabled === false) {
+    throw ApiError.unprocessable('Khalti is disabled');
+  }
+  if (paymentMethod === 'cod' && payments.codEnabled === false) {
+    throw ApiError.unprocessable('Cash on delivery is disabled');
+  }
+
   const address = await Address.findOne({ _id: addressId, user: user._id });
   if (!address) throw ApiError.badRequest('Address not found');
   const { cart, lines } = await cartLinesForCheckout({ userId: user._id });
@@ -55,6 +69,7 @@ export async function createOrderFromCart({ user, addressId, shippingMethod, pay
     await inventory.assertAvailable(line.product._id, line.variantId, line.qty);
   }
 
+  const isCod = paymentMethod === 'cod';
   const order = await Order.create({
     orderNumber: await nextOrderNumber(),
     user: user._id,
@@ -86,8 +101,14 @@ export async function createOrderFromCart({ user, addressId, shippingMethod, pay
     taxPaisa: quote.taxPaisa,
     totalPaisa: quote.totalPaisa,
     couponCode: quote.couponCode,
-    status: 'payment_pending',
-    timeline: [{ status: 'payment_pending', at: new Date(), note: 'Order created, awaiting payment' }],
+    status: isCod ? 'confirmed' : 'payment_pending',
+    timeline: [
+      {
+        status: isCod ? 'confirmed' : 'payment_pending',
+        at: new Date(),
+        note: isCod ? 'Order placed. Pay cash on delivery.' : 'Order created, awaiting payment',
+      },
+    ],
     shippingMethod: quote.shippingMethod,
     payment: { method: paymentMethod, status: 'pending', gatewayIds: {} },
   });
@@ -102,11 +123,22 @@ export async function createOrderFromCart({ user, addressId, shippingMethod, pay
     throw err;
   }
 
+  if (isCod) {
+    await inventory.commitForOrder(order);
+    if (order.couponCode) {
+      await Coupon.updateOne({ code: order.couponCode }, { $inc: { usedCount: 1 } });
+    }
+    await Cart.updateOne({ user: order.user }, { $set: { items: [], couponCode: '' } });
+    await order.save();
+  }
+
   await notify({
     user: user._id,
     type: 'order_created',
     title: 'Order placed',
-    body: `${order.orderNumber} is awaiting payment.`,
+    body: isCod
+      ? `${order.orderNumber} is confirmed. Pay cash on delivery.`
+      : `${order.orderNumber} is awaiting payment.`,
     link: `/account/orders/${order._id}`,
   });
 
@@ -166,6 +198,10 @@ export async function updateStatus(order, status, note = '', adminUser) {
   if (status === 'refunded') {
     await inventory.releaseForOrder(order, { type: 'refund', reason: note || 'Refunded' });
     order.payment = { ...(order.payment?.toObject?.() || order.payment || {}), status: 'refunded' };
+  }
+  const pay = order.payment?.toObject?.() || order.payment || {};
+  if (pay.method === 'cod' && pay.status === 'pending' && (status === 'delivered' || status === 'paid')) {
+    order.payment = { ...pay, status: 'completed' };
   }
   order.status = status;
   order.timeline.push({

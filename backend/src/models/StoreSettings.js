@@ -33,6 +33,7 @@ const storeSettingsSchema = new mongoose.Schema(
     payments: {
       esewaEnabled: { type: Boolean, default: true },
       khaltiEnabled: { type: Boolean, default: true },
+      codEnabled: { type: Boolean, default: true },
       esewaProductCode: { type: String, default: '' },
     },
     order: {

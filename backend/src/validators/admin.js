@@ -68,6 +68,7 @@ export const settingsUpdateSchema = body({
     .object({
       esewaEnabled: z.boolean().optional(),
       khaltiEnabled: z.boolean().optional(),
+      codEnabled: z.boolean().optional(),
       esewaProductCode: z.string().max(80).optional(),
     })
     .optional(),

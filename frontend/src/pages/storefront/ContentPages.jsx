@@ -15,7 +15,7 @@ export function AboutPage() {
       <Seo title="About" description="ElectroPoint is a professional electronics retailer in Nepal." canonical="/about" />
       <h1 className="font-display text-h1">Built for people who read the spec sheet</h1>
       <p className="mt-6 text-muted">
-        ElectroPoint sells authentic consumer electronics with official warranty, NPR pricing, and payments through eSewa and Khalti. Categories, specifications, and homepage merchandising are controlled by the store admin — not hardcoded marketing templates.
+        ElectroPoint sells authentic consumer electronics with official warranty, NPR pricing, and payments through eSewa, Khalti, and cash on delivery. Categories, specifications, and homepage merchandising are controlled by the store admin — not hardcoded marketing templates.
       </p>
       <p className="mt-4 text-muted">
         We do not invent stock, reviews, or analytics. If a number appears in the admin dashboard, it comes from the database.
@@ -73,7 +73,7 @@ export function FaqPage() {
   const items = [
     { q: 'Do I need an account to browse?', a: 'No. Login is required for checkout, orders, wishlist, and reviews.' },
     { q: 'How are prices calculated?', a: 'The server computes totals from catalog prices, shipping, tax, and coupons. The browser never sets the payable amount.' },
-    { q: 'Which payments are supported?', a: 'eSewa ePay v2 and Khalti KPG-2. Payment is verified with the official status/lookup APIs before an order is marked paid.' },
+    { q: 'Which payments are supported?', a: 'eSewa, Khalti, and cash on delivery. Online payments are verified with the official status APIs before an order is marked paid. COD is confirmed immediately and collected when the order is delivered.' },
     { q: 'Is every product 3D?', a: 'No. The admin sets visual mode per product: images, 360 spin, or a GLB/GLTF model.' },
   ];
   return (
