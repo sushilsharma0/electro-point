@@ -3,12 +3,15 @@ import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { listFrom } from '@/lib/api';
+import { MegaMenuSkeleton } from '@/components/ui/skeleton';
 
-export function MegaMenu({ categories, open, onClose }) {
+export function MegaMenu({ categories, open, onClose, isLoading = false }) {
   const tree = listFrom(categories);
   const [active, setActive] = useState(tree[0]?._id || tree[0]?.id);
 
-  if (!open || !tree.length) return null;
+  if (!open) return null;
+  if (isLoading) return <MegaMenuSkeleton />;
+  if (!tree.length) return null;
 
   const current = tree.find((c) => (c._id || c.id) === active) || tree[0];
   const children = current?.children || [];

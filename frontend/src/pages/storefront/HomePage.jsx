@@ -17,6 +17,7 @@ import { PriceDisplay } from '@/components/product/PriceDisplay';
 import { Seo, orgJsonLd } from '@/components/Seo';
 import { Container } from '@/components/layout/Container';
 import { toast } from 'sonner';
+import { HomeSkeleton } from '@/components/ui/skeleton';
 
 const ProductViewer3D = lazy(() => import('@/components/three/ProductViewer3D'));
 
@@ -62,6 +63,9 @@ export function HomePage() {
     enabled: recentIds.length > 0,
   });
   const recent = listFrom(recentQ.data?.products || recentQ.data);
+  const homeLoading = featured.isLoading || cats.isLoading || best.isLoading;
+
+  if (homeLoading) return <HomeSkeleton />;
 
   return (
     <>

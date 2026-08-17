@@ -3,6 +3,7 @@ import { catalogApi, listFrom } from '@/lib/api';
 import { getRecentlyViewed } from '@/lib/storage';
 import { idOf } from '@/lib/product';
 import { ProductCard } from '@/components/product/ProductCard';
+import { ProductGridSkeleton } from '@/components/ui/skeleton';
 
 export function RecentlyViewed({ excludeId, className }) {
   const ids = getRecentlyViewed().filter((id) => String(id) !== String(excludeId));
@@ -12,6 +13,17 @@ export function RecentlyViewed({ excludeId, className }) {
     enabled: ids.length > 0,
   });
   const products = listFrom(q.data?.products || q.data);
+  if (!ids.length) return null;
+  if (q.isLoading) {
+    return (
+      <section className={className} aria-busy="true">
+        <h2 className="font-display text-h3">Recently viewed</h2>
+        <div className="mt-6">
+          <ProductGridSkeleton count={4} />
+        </div>
+      </section>
+    );
+  }
   if (!products.length) return null;
   return (
     <section className={className}>

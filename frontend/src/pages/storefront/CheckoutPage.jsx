@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/cn';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Banknote } from 'lucide-react';
+import { CheckoutSkeleton } from '@/components/ui/skeleton';
 
 const STEPS = ['Info', 'Address', 'Shipping', 'Summary', 'Payment', 'Done'];
 
@@ -42,7 +43,7 @@ const addressSchema = z.object({
 
 export function CheckoutPage() {
   const { user } = useAuth();
-  const { cart, items } = useCart();
+  const { cart, items, query: cartQuery } = useCart();
   const { settings } = useSettings();
   const qc = useQueryClient();
   const [step, setStep] = useState(0);
@@ -57,6 +58,10 @@ export function CheckoutPage() {
     queryKey: ['checkout-quote', shippingMethod],
     queryFn: () => checkoutApi.quote({ shippingMethod }),
   });
+
+  if (cartQuery.isLoading) {
+    return <CheckoutSkeleton />;
+  }
 
   if (!items.length && !order) {
     return (
@@ -278,11 +283,11 @@ export function CheckoutPage() {
         <details className="mb-4 border border-border p-4 lg:hidden">
           <summary className="cursor-pointer font-medium">Order summary</summary>
           <div className="mt-4">
-            <CartSummary cart={cart} quote={quote.data} />
+            <CartSummary cart={cart} quote={quote.data} quoteLoading={quote.isLoading} />
           </div>
         </details>
         <div className="hidden lg:sticky lg:top-8 lg:block">
-          <CartSummary cart={cart} quote={quote.data} />
+          <CartSummary cart={cart} quote={quote.data} quoteLoading={quote.isLoading} />
         </div>
       </div>
     </Container>

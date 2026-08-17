@@ -6,6 +6,7 @@ import { Container } from '@/components/layout/Container';
 import { Seo } from '@/components/Seo';
 import { PaymentCancelledPage, PaymentFailedPage } from '@/pages/errors/ErrorPages';
 import { formatNpr } from '@/lib/money';
+import { PaymentConfirmSkeleton } from '@/components/ui/skeleton';
 
 export function EsewaReturnPage() {
   return <PaymentReturnPage gateway="eSewa" />;
@@ -59,18 +60,18 @@ function PaymentReturnPage({ gateway }) {
 
   if (state.status === 'failed') return <PaymentFailedPage />;
   if (state.status === 'cancelled') return <PaymentCancelledPage />;
+  if (state.status === 'processing') {
+    return (
+      <>
+        <Seo title={`${gateway} payment`} noindex />
+        <PaymentConfirmSkeleton />
+      </>
+    );
+  }
 
   return (
     <Container className="max-w-lg py-16 text-center">
       <Seo title={`${gateway} payment`} noindex />
-      {state.status === 'processing' ? (
-        <>
-          <h1 className="font-display text-h2">Confirming payment</h1>
-          <p className="mt-3 text-sm text-muted">
-            Waiting for {gateway} verification from the server. Do not trust this page until the order shows paid.
-          </p>
-        </>
-      ) : null}
       {state.status === 'paid' ? (
         <>
           <h1 className="font-display text-h2">Payment received</h1>

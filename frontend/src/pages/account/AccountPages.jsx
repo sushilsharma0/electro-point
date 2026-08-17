@@ -15,6 +15,7 @@ import { EmptyState } from '@/pages/errors/EmptyState';
 import { Seo } from '@/components/Seo';
 import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
+import { AccountSkeleton, AccountOrderSkeleton, AddressSkeleton, ProductGridSkeleton } from '@/components/ui/skeleton';
 
 export function AccountHomePage() {
   const { user } = useAuth();
@@ -43,7 +44,8 @@ export function AccountHomePage() {
 export function AccountOrdersPage() {
   const q = useQuery({ queryKey: ['my-orders'], queryFn: () => checkoutApi.myOrders() });
   const orders = listFrom(q.data);
-  if (!q.isLoading && !orders.length) {
+  if (q.isLoading) return <AccountSkeleton />;
+  if (!orders.length) {
     return <EmptyState title="No orders yet" body="When you complete checkout, they appear here." actionTo="/shop" actionLabel="Shop" />;
   }
   return (
@@ -70,7 +72,7 @@ export function AccountOrderDetailPage() {
   const { id } = useParams();
   const q = useQuery({ queryKey: ['order', id], queryFn: () => checkoutApi.order(id) });
   const order = q.data?.order || q.data;
-  if (!order) return <p className="text-sm text-muted">Loading…</p>;
+  if (q.isLoading || !order) return <AccountOrderSkeleton />;
   return (
     <div>
       <Seo title={`Order ${order.orderNumber}`} noindex />
@@ -157,6 +159,8 @@ export function AccountAddressesPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['addresses'] }),
   });
 
+  if (q.isLoading) return <AddressSkeleton />;
+
   return (
     <div className="grid gap-10 lg:grid-cols-2">
       <Seo title="Addresses" noindex />
@@ -192,7 +196,8 @@ export function AccountAddressesPage() {
 export function AccountWishlistPage() {
   const { products, query } = useWishlist();
   const { add } = useCart();
-  if (!query.isLoading && !products.length) {
+  if (query.isLoading) return <ProductGridSkeleton count={6} />;
+  if (!products.length) {
     return <EmptyState icon={Heart} title="Wishlist is empty" body="Save devices while you decide." actionTo="/shop" actionLabel="Browse" />;
   }
   const list = products.map((p) => p.product || p);
@@ -214,7 +219,8 @@ export function AccountWishlistPage() {
 export function AccountReviewsPage() {
   const q = useQuery({ queryKey: ['my-reviews'], queryFn: accountApi.reviews });
   const reviews = listFrom(q.data);
-  if (!q.isLoading && !reviews.length) {
+  if (q.isLoading) return <AccountSkeleton />;
+  if (!reviews.length) {
     return <EmptyState title="No reviews yet" body="Reviews require a verified purchase." />;
   }
   return (

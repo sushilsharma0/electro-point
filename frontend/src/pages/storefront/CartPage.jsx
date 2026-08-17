@@ -57,6 +57,7 @@ export function CartPage() {
         <CartSummary
           cart={cart}
           quote={totals}
+          quoteLoading={quote.isLoading}
           cta={
             <Button asChild className="mt-6 w-full" size="lg">
               <Link to="/checkout">Checkout</Link>

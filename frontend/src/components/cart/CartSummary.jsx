@@ -4,12 +4,25 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { formatNpr } from '@/lib/money';
 import { useCart } from '@/hooks/useCart';
+import { Skeleton } from '@/components/ui/skeleton';
 
-export function CartSummary({ cart, quote, cta, ctaLabel = 'Checkout' }) {
+export function CartSummary({ cart, quote, quoteLoading = false, cta, ctaLabel = 'Checkout' }) {
   const totals = quote || cart || {};
   const { applyCoupon, removeCoupon } = useCart();
   const [code, setCode] = useState('');
   const applied = cart?.couponCode || totals.couponCode;
+
+  if (quoteLoading) {
+    return (
+      <aside className="h-fit space-y-3 border border-border bg-surface p-5" aria-busy="true">
+        <Skeleton className="h-5 w-32" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-2/3" />
+        <Skeleton className="h-8 w-full" />
+      </aside>
+    );
+  }
 
   return (
     <aside className="h-fit border border-border bg-surface p-5">

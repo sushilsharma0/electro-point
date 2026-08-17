@@ -1,9 +1,11 @@
 import { Outlet } from 'react-router-dom';
+import { Suspense } from 'react';
 import { AnnouncementBar } from '@/components/layout/AnnouncementBar';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { CompareBar } from '@/components/product/CompareBar';
 import { CartDrawer } from '@/components/cart/CartDrawer';
+import { StorefrontOutletFallback } from '@/components/loading/RouteFallback';
 
 export function StorefrontLayout() {
   return (
@@ -15,7 +17,9 @@ export function StorefrontLayout() {
       <Navbar />
       <CartDrawer />
       <main id="main" className="flex-1">
-        <Outlet />
+        <Suspense fallback={<StorefrontOutletFallback />}>
+          <Outlet />
+        </Suspense>
       </main>
       <CompareBar />
       <Footer />

@@ -7,10 +7,11 @@ import { CartItem } from '@/components/cart/CartItem';
 import { useCart } from '@/hooks/useCart';
 import { useCartUi } from '@/store/cart';
 import { formatNpr } from '@/lib/money';
+import { CartDrawerSkeleton } from '@/components/ui/skeleton';
 
 export function CartDrawer() {
   const { pathname } = useLocation();
-  const { cart, items, updateItem, removeItem } = useCart();
+  const { cart, items, updateItem, removeItem, query } = useCart();
   const drawerOpen = useCartUi((s) => s.drawerOpen);
   const closeDrawer = useCartUi((s) => s.closeDrawer);
 
@@ -39,7 +40,9 @@ export function CartDrawer() {
         </div>
 
         <div className="flex-1 overflow-y-auto px-6">
-          {!items.length ? (
+          {query.isLoading ? (
+            <CartDrawerSkeleton />
+          ) : !items.length ? (
             <div className="flex flex-col items-center py-16 text-center">
               <ShoppingBag className="h-8 w-8 text-muted" aria-hidden />
               <p className="mt-3 text-sm text-muted">Your cart is empty.</p>

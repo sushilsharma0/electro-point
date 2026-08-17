@@ -27,6 +27,8 @@ export function AdminLoginPage() {
     if (!isLoading && user) nav(next, { replace: true });
   }, [isLoading, user, nav, next]);
 
+  if (isLoading) return null;
+
   return (
     <div className="grid min-h-[calc(100vh-56px)] w-full lg:grid-cols-2">
       <Seo title="Admin sign in" canonical="/admin/login" noindex />

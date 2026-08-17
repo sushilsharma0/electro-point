@@ -25,6 +25,8 @@ export function AdminProductsPage() {
     },
   });
 
+  if (query.isLoading) return null;
+
   return (
     <div>
       <Seo title="Products" noindex />
@@ -171,6 +173,7 @@ export function AdminProductFormPage() {
   };
 
   const categories = listFrom(cats.data);
+  if (!isNew && existing.isLoading) return null;
 
   return (
     <div className="space-y-6">

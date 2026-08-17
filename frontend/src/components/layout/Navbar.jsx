@@ -17,7 +17,7 @@ import { cn } from '@/lib/cn';
 
 export function Navbar() {
   const { user } = useAuth();
-  const { count } = useCart();
+  const { count, query: cartQuery } = useCart();
   const cats = useCategories();
   const categories = listFrom(cats.data);
   const compareCount = useCompareStore((s) => s.ids.length);
@@ -174,7 +174,9 @@ export function Navbar() {
           >
             <span className="relative">
               <ShoppingBag />
-              {count ? (
+              {cartQuery.isLoading ? (
+                <span className="skeleton-block absolute -right-1.5 -top-1.5 h-4 w-4 rounded-sm" aria-hidden />
+              ) : count ? (
                 <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-sm bg-primary px-0.5 text-[10px] text-primary-fg">
                   {count}
                 </span>
@@ -194,7 +196,7 @@ export function Navbar() {
           if (e.pointerType === 'mouse') scheduleClose();
         }}
       >
-        <MegaMenu categories={categories} open={mega} onClose={closeMega} />
+        <MegaMenu categories={categories} open={mega} onClose={closeMega} isLoading={cats.isLoading} />
       </div>
       <MobileNav open={mobile} onOpenChange={setMobile} categories={categories} />
     </header>

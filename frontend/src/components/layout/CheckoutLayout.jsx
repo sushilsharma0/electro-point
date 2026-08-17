@@ -1,7 +1,9 @@
 import { Link, Outlet } from 'react-router-dom';
+import { Suspense } from 'react';
 import { Logo } from '@/components/layout/Logo';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { Lock } from 'lucide-react';
+import { StorefrontOutletFallback } from '@/components/loading/RouteFallback';
 
 export function CheckoutLayout() {
   return (
@@ -23,7 +25,9 @@ export function CheckoutLayout() {
         </div>
       </header>
       <main id="main" className="flex-1 py-8">
-        <Outlet />
+        <Suspense fallback={<StorefrontOutletFallback />}>
+          <Outlet />
+        </Suspense>
       </main>
     </div>
   );

@@ -159,6 +159,60 @@
   .product-stage {
     background: var(--product-stage);
   }
+
+  .skeleton-block {
+    position: relative;
+    overflow: hidden;
+    background: var(--muted-bg);
+  }
+
+  .skeleton-block::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--surface) 65%, transparent), transparent);
+    animation: ep-shimmer 1.2s ease-out infinite;
+  }
+
+  .ep-spinner {
+    position: relative;
+    display: block;
+    border-radius: 999px;
+    border: 1.5px solid var(--border);
+  }
+
+  .ep-spinner::before,
+  .ep-spinner::after {
+    content: '';
+    position: absolute;
+    border-radius: 999px;
+  }
+
+  .ep-spinner::before {
+    inset: 5px;
+    border: 1.5px solid var(--border);
+  }
+
+  .ep-spinner::after {
+    inset: -1.5px;
+    border: 1.5px solid transparent;
+    border-top-color: var(--accent);
+    border-right-color: var(--accent);
+    animation: ep-spin 0.8s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+  }
+}
+
+@keyframes ep-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes ep-shimmer {
+  to {
+    transform: translateX(100%);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

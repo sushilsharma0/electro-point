@@ -41,6 +41,8 @@ export function AdminCategoriesPage() {
     onError: (e) => toast.error(e.message),
   });
 
+  if (q.isLoading) return null;
+
   return (
     <div className="grid gap-8 lg:grid-cols-2">
       <Seo title="Categories" noindex />
@@ -113,6 +115,7 @@ export function AdminOrdersPage() {
   const [status, setStatus] = useState('');
   const q = useQuery({ queryKey: ['admin-orders', status], queryFn: () => adminApi.orders({ status, limit: 50 }) });
   const orders = listFrom(q.data);
+  if (q.isLoading) return null;
   return (
     <div>
       <Seo title="Orders" noindex />
@@ -165,7 +168,7 @@ export function AdminOrderDetailPage() {
       toast.success('Order updated');
     },
   });
-  if (!order) return <p>Loading…</p>;
+  if (q.isLoading || !order) return null;
   return (
     <div className="space-y-6">
       <Seo title={order.orderNumber} noindex />
@@ -206,6 +209,7 @@ export function AdminCustomersPage() {
     mutationFn: ({ id, body }) => adminApi.updateCustomer(id, body),
     onSuccess: () => q.refetch(),
   });
+  if (q.isLoading) return null;
   return (
     <div>
       <Seo title="Customers" noindex />
@@ -257,6 +261,7 @@ export function AdminInventoryPage() {
     },
     onError: (e) => toast.error(e.message),
   });
+  if (q.isLoading) return null;
   return (
     <div>
       <Seo title="Inventory" noindex />
@@ -324,6 +329,7 @@ export function AdminCouponsPage() {
     },
     onError: (e) => toast.error(e.message),
   });
+  if (q.isLoading) return null;
   return (
     <div className="grid gap-8 lg:grid-cols-2">
       <Seo title="Coupons" noindex />
@@ -390,6 +396,7 @@ export function AdminReviewsPage() {
     mutationFn: ({ id, status }) => adminApi.updateReview(id, { status }),
     onSuccess: () => q.refetch(),
   });
+  if (q.isLoading) return null;
   return (
     <div>
       <Seo title="Reviews" noindex />
@@ -428,6 +435,7 @@ export function AdminReviewsPage() {
 export function AdminPaymentsPage() {
   const q = useQuery({ queryKey: ['admin-payments'], queryFn: () => adminApi.payments({ limit: 50 }) });
   const payments = listFrom(q.data);
+  if (q.isLoading) return null;
   return (
     <div>
       <Seo title="Payments" noindex />
@@ -467,7 +475,7 @@ export function AdminSettingsPage() {
     onSuccess: () => toast.success('Settings saved'),
     onError: (e) => toast.error(e.message),
   });
-  if (!form) return <p>Loading…</p>;
+  if (!form) return null;
   return (
     <form
       className="max-w-xl space-y-4"

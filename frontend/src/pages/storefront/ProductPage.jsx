@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/input';
-import { PdpSkeleton } from '@/components/ui/skeleton';
+import { PdpSkeleton, ProductGridSkeleton, Skeleton } from '@/components/ui/skeleton';
 import { ProductGallery } from '@/components/product/ProductGallery';
 import { ProductSpecs } from '@/components/product/ProductSpecs';
 import { VariantPicker } from '@/components/product/VariantPicker';
@@ -198,7 +198,7 @@ export function ProductPage() {
               visualSlot={
                 product.visualMode === 'model3d' ? (
                   <div className="absolute inset-0">
-                    <Suspense fallback={null}>
+                    <Suspense fallback={<Skeleton className="h-full w-full rounded-none" />}>
                       <ProductViewer3D product={product} className="h-full" />
                     </Suspense>
                   </div>
@@ -251,7 +251,7 @@ export function ProductPage() {
                 </ul>
               </section>
             ) : null}
-            <ReviewsBlock productId={id} reviews={reviewList} canWrite={Boolean(user)} />
+            <ReviewsBlock productId={id} reviews={reviewList} canWrite={Boolean(user)} isLoading={reviews.isLoading} />
             <section>
               <h2 className="font-display text-h3">Questions</h2>
               <p className="mt-2 text-sm text-muted">Product questions will appear here when the store enables Q&A. For now, use the contact form.</p>
@@ -262,7 +262,14 @@ export function ProductPage() {
           </div>
         </div>
 
-        {listFrom(related.data).length ? (
+        {related.isLoading ? (
+          <section className="mt-16" aria-busy="true">
+            <h2 className="font-display text-h2">Related</h2>
+            <div className="mt-6">
+              <ProductGridSkeleton count={4} />
+            </div>
+          </section>
+        ) : listFrom(related.data).length ? (
           <section className="mt-16">
             <h2 className="font-display text-h2">Related</h2>
             <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -292,7 +299,7 @@ export function ProductPage() {
   );
 }
 
-function ReviewsBlock({ productId, reviews, canWrite }) {
+function ReviewsBlock({ productId, reviews, canWrite, isLoading }) {
   const [rating, setRating] = useState(5);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
@@ -300,7 +307,17 @@ function ReviewsBlock({ productId, reviews, canWrite }) {
   return (
     <section>
       <h2 className="font-display text-h3">Reviews</h2>
-      {reviews.length ? (
+      {isLoading ? (
+        <div className="mt-4 space-y-4" aria-busy="true">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div key={i} className="space-y-2 border-b border-border pb-4">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-1/2" />
+              <Skeleton className="h-3 w-full" />
+            </div>
+          ))}
+        </div>
+      ) : reviews.length ? (
         <ul className="mt-4 space-y-4">
           {reviews.map((r) => (
             <li key={r._id} className="border-b border-border pb-4">

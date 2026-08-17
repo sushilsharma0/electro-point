@@ -1,4 +1,6 @@
+import { Suspense, useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
+import { useIsFetching } from '@tanstack/react-query';
 import {
   BarChart3,
   Boxes,
@@ -9,7 +11,6 @@ import {
   Settings,
   ShoppingCart,
   Star,
-  Tag,
   Ticket,
   Users,
   Wallet,
@@ -19,6 +20,8 @@ import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { Button } from '@/components/ui/button';
 import { useAdminAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/cn';
+import { AdminSpinnerScreen } from '@/components/ui/spinner';
+import { ChunkLoadingSignal } from '@/components/loading/ChunkLoadingSignal';
 
 const LINKS = [
   { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -34,9 +37,7 @@ const LINKS = [
   { to: '/admin/settings', label: 'Settings', icon: Settings },
 ];
 
-export function AdminLayout() {
-  const { logout, user } = useAdminAuth();
-
+export function AdminShell({ children, user, onLogout }) {
   return (
     <div className="flex min-h-screen bg-background">
       <a href="#main" className="skip-link">
@@ -63,9 +64,7 @@ export function AdminLayout() {
             </NavLink>
           ))}
         </nav>
-        <div className="border-t border-border p-3 text-xs text-muted">
-          {user?.email}
-        </div>
+        <div className="border-t border-border p-3 text-xs text-muted">{user?.email || '\u00a0'}</div>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-surface px-4">
@@ -77,15 +76,11 @@ export function AdminLayout() {
               </a>
             </Button>
             <ThemeToggle />
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              aria-label="Sign out"
-              onClick={() => logout.mutate(undefined, { onSuccess: () => window.location.assign('/admin/login') })}
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
+            {onLogout ? (
+              <Button type="button" variant="ghost" size="icon" aria-label="Sign out" onClick={onLogout}>
+                <LogOut className="h-4 w-4" />
+              </Button>
+            ) : null}
           </div>
         </header>
         <nav className="flex gap-1 overflow-x-auto border-b border-border px-2 py-2 lg:hidden" aria-label="Admin mobile">
@@ -101,10 +96,44 @@ export function AdminLayout() {
             </NavLink>
           ))}
         </nav>
-        <main id="main" className="mx-auto w-full max-w-admin flex-1 p-4 sm:p-6">
-          <Outlet />
+        <main id="main" className="mx-auto flex w-full max-w-admin flex-1 flex-col p-4 sm:p-6">
+          {children}
         </main>
       </div>
     </div>
   );
 }
+
+function isInitialAdminFetch(query) {
+  const key = String(query.queryKey?.[0] || '');
+  const isAdminQuery = key.startsWith('admin') || (key === 'auth' && query.queryKey?.[1] === 'admin');
+  if (!isAdminQuery) return false;
+  return query.state.data === undefined && query.state.fetchStatus === 'fetching';
+}
+
+export function AdminLayout() {
+  const { logout, user, isLoading: authLoading } = useAdminAuth();
+  const [chunkLoading, setChunkLoading] = useState(false);
+  const pending = useIsFetching({ predicate: isInitialAdminFetch });
+  const showSpinner = authLoading || chunkLoading || pending > 0;
+
+  return (
+    <AdminShell
+      user={user}
+      onLogout={() => logout.mutate(undefined, { onSuccess: () => window.location.assign('/admin/login') })}
+    >
+      <div className="relative flex min-h-[calc(100vh-7.5rem)] flex-1 flex-col">
+        <Suspense fallback={<ChunkLoadingSignal onChange={setChunkLoading} />}>
+          <Outlet />
+        </Suspense>
+        {showSpinner ? (
+          <div className="absolute inset-0 z-10 bg-background">
+            <AdminSpinnerScreen />
+          </div>
+        ) : null}
+      </div>
+    </AdminShell>
+  );
+}
+
+

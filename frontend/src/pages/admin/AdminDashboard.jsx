@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Bar, BarChart, Pie, PieChart, Cell } from 'recharts';
 import { adminApi, listFrom } from '@/lib/api';
 import { formatNpr } from '@/lib/money';
-import { DashboardSkeleton } from '@/components/ui/skeleton';
 import { Seo } from '@/components/Seo';
 import { NetworkErrorPage } from '@/pages/errors/ErrorPages';
 
@@ -11,7 +10,7 @@ const ACCENT = '#0A66FF';
 
 export function AdminDashboardPage() {
   const q = useQuery({ queryKey: ['admin-analytics'], queryFn: () => adminApi.analytics() });
-  if (q.isLoading) return <DashboardSkeleton />;
+  if (q.isLoading) return null;
   if (q.isError) return <NetworkErrorPage onRetry={() => q.refetch()} />;
   const d = q.data || {};
   const kpis = [
@@ -103,6 +102,7 @@ export function AdminDashboardPage() {
 
 export function AdminAnalyticsPage() {
   const q = useQuery({ queryKey: ['admin-analytics', 'full'], queryFn: () => adminApi.analytics({ range: '90d' }) });
+  if (q.isLoading) return null;
   const d = q.data || {};
   const cats = d.topCategories || [];
   const statuses = d.orderStatusBreakdown || d.statuses || [];

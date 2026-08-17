@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Container } from '@/components/layout/Container';
 import { Seo } from '@/components/Seo';
 import { Link } from 'react-router-dom';
+import { CompareSkeleton } from '@/components/ui/skeleton';
 
 export function ComparePage() {
   const [sp] = useSearchParams();
@@ -23,6 +24,8 @@ export function ComparePage() {
 
   const products = listFrom(q.data?.products || q.data);
   const groups = collectSpecRows(products);
+
+  if (ids.length && q.isLoading) return <CompareSkeleton />;
 
   return (
     <Container className="py-10">

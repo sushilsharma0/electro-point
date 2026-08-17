@@ -13,6 +13,7 @@ import { ProductGrid } from '@/components/product/ProductGrid';
 import { Container } from '@/components/layout/Container';
 import { Seo, breadcrumbJsonLd } from '@/components/Seo';
 import { Search } from 'lucide-react';
+import { CatalogSkeleton } from '@/components/ui/skeleton';
 
 const SORTS = [
   { value: 'newest', label: 'Newest' },
@@ -30,6 +31,7 @@ export function CategoryPage() {
   const { slug } = useParams();
   const cat = useQuery({ queryKey: ['category', slug], queryFn: () => catalogApi.category(slug), enabled: Boolean(slug) });
   const category = cat.data?.category || cat.data;
+  if (cat.isLoading) return <CatalogSkeleton />;
   return (
     <CatalogView
       title={category?.name || 'Category'}
@@ -109,6 +111,8 @@ function CatalogView({ title, description, canonical, categorySlug, banner, crum
       setSp={setSp}
     />
   );
+
+  if (query.isLoading) return <CatalogSkeleton />;
 
   return (
     <>

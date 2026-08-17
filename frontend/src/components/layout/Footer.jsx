@@ -3,6 +3,7 @@ import { Container } from '@/components/layout/Container';
 import { useCategories, useSettings } from '@/hooks/useCatalog';
 import { listFrom } from '@/lib/api';
 import { StaffLoginLink } from '@/components/layout/StaffLoginLink';
+import { FooterLinksSkeleton } from '@/components/ui/skeleton';
 
 export function Footer() {
   const { settings } = useSettings();
@@ -22,16 +23,22 @@ export function Footer() {
         <div>
           <p className="caption mb-3">Categories</p>
           <ul className="space-y-2 text-sm">
-            {categories.map((c) => (
-              <li key={c.slug}>
-                <Link to={`/category/${c.slug}`} className="hover:text-accent">
-                  {c.name}
-                </Link>
-              </li>
-            ))}
-            <li>
-              <Link to="/shop" className="hover:text-accent">All products</Link>
-            </li>
+            {cats.isLoading ? (
+              <FooterLinksSkeleton />
+            ) : (
+              <>
+                {categories.map((c) => (
+                  <li key={c.slug}>
+                    <Link to={`/category/${c.slug}`} className="hover:text-accent">
+                      {c.name}
+                    </Link>
+                  </li>
+                ))}
+                <li>
+                  <Link to="/shop" className="hover:text-accent">All products</Link>
+                </li>
+              </>
+            )}
           </ul>
         </div>
         <div>

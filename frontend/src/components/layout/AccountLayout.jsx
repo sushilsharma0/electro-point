@@ -1,6 +1,8 @@
 import { NavLink, Outlet } from 'react-router-dom';
+import { Suspense } from 'react';
 import { Container } from '@/components/layout/Container';
 import { cn } from '@/lib/cn';
+import { AccountSkeleton } from '@/components/ui/skeleton';
 
 const LINKS = [
   { to: '/account', label: 'Overview', end: true },
@@ -33,7 +35,9 @@ export function AccountLayout() {
         ))}
       </nav>
       <div className="py-8">
-        <Outlet />
+        <Suspense fallback={<AccountSkeleton />}>
+          <Outlet />
+        </Suspense>
       </div>
     </Container>
   );

@@ -7,6 +7,7 @@ import { AdminLoginLayout } from '@/components/layout/AdminLoginLayout';
 import { AccountLayout } from '@/components/layout/AccountLayout';
 import { RequireAuth, RequireAdmin } from '@/components/guards';
 import { NotFoundPage, ServerErrorPage } from '@/pages/errors/ErrorPages';
+import { AppRouteFallback } from '@/components/loading/RouteFallback';
 
 const HomePage = lazy(() => import('@/pages/storefront/HomePage').then((m) => ({ default: m.HomePage })));
 const ShopPage = lazy(() => import('@/pages/storefront/CatalogPages').then((m) => ({ default: m.ShopPage })));
@@ -51,18 +52,9 @@ const AdminPaymentsPage = lazy(() => import('@/pages/admin/AdminRest').then((m) 
 const AdminSettingsPage = lazy(() => import('@/pages/admin/AdminRest').then((m) => ({ default: m.AdminSettingsPage })));
 const AdminLoginPage = lazy(() => import('@/pages/admin/AdminLoginPage').then((m) => ({ default: m.AdminLoginPage })));
 
-function Fallback() {
-  return (
-    <div className="flex min-h-[40vh] items-center justify-center">
-      <div className="h-8 w-48 animate-pulse bg-muted-bg" aria-hidden />
-      <span className="sr-only">Loading</span>
-    </div>
-  );
-}
-
 export default function App() {
   return (
-    <Suspense fallback={<Fallback />}>
+    <Suspense fallback={<AppRouteFallback />}>
       <Routes>
         <Route element={<StorefrontLayout />}>
           <Route path="/" element={<HomePage />} />
