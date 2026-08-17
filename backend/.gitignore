@@ -1,0 +1,10 @@
+node_modules/
+.env
+.env.local
+uploads/
+*.log
+coverage/
+.DS_Store
+Thumbs.db
+mongodb-memory-server/
+.cache/

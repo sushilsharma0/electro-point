@@ -1,0 +1,14 @@
+node_modules/
+dist/
+build/
+.env
+.env.local
+*.log
+uploads/
+backend/uploads/
+frontend/dist/
+.DS_Store
+Thumbs.db
+coverage/
+.vite/
+*.local
