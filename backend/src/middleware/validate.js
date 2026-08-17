@@ -12,7 +12,7 @@ export function validate(schema) {
         path: issue.path.join('.'),
         message: issue.message,
       }));
-      return next(ApiError.validation('Invalid request', details));
+      return next(ApiError.validation(details[0]?.message || 'Invalid request', details));
     }
     if (parsed.data.body !== undefined) req.body = parsed.data.body;
     if (parsed.data.query !== undefined) req.query = parsed.data.query;

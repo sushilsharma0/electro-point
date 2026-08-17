@@ -14,6 +14,33 @@ describe('auth and admin authorization', { timeout: 120_000 }, () => {
     await stopApp(mongod);
   });
 
+  it('registers a new email while merging a guest cart', async () => {
+    const product = await createProduct({ pricePaisa: 1000000, stock: 5, name: 'Register Cart Phone' });
+    const api = client(app);
+    await api.initCsrf();
+    const added = await api.post('/api/v1/cart/items').send({
+      productId: String(product._id),
+      qty: 1,
+    });
+    assert.equal(added.status, 201);
+    assert.equal(added.body.data.items.length, 1);
+
+    const email = `guestcart${Date.now()}@example.com`;
+    const register = await api.post('/api/v1/auth/register').send({
+      name: 'Guest Cart User',
+      email,
+      password: 'Customer#12345',
+      phone: '9800000001',
+    });
+    assert.equal(register.status, 201, register.body?.error?.message);
+    assert.equal(register.body.data.user.email, email);
+
+    const cart = await api.get('/api/v1/cart');
+    assert.equal(cart.status, 200);
+    assert.equal(cart.body.data.items.length, 1);
+    assert.equal(String(cart.body.data.items[0].productId || cart.body.data.items[0].product), String(product._id));
+  });
+
   it('registers and logs in a customer', async () => {
     const api = client(app);
     await api.initCsrf();
@@ -90,7 +117,8 @@ describe('auth and admin authorization', { timeout: 120_000 }, () => {
     assert.equal(cookies.some((c) => c.startsWith('ep_access=')), false);
 
     const storefrontMe = await admin.get('/api/v1/auth/me');
-    assert.equal(storefrontMe.status, 401);
+    assert.equal(storefrontMe.status, 200);
+    assert.equal(storefrontMe.body.data.user, null);
 
     const adminMe = await admin.get('/api/v1/auth/admin/me');
     assert.equal(adminMe.status, 200);

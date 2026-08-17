@@ -27,26 +27,43 @@ function refreshHashField(audience) {
 }
 
 export async function register({ name, email, password, phone, guestId }) {
-  const exists = await User.findOne({ email });
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  if (!normalizedEmail) throw ApiError.badRequest('Email is required');
+  const exists = await User.findOne({ email: normalizedEmail });
   if (exists) throw ApiError.conflict('Email already registered');
   const passwordHash = await bcrypt.hash(password, env.BCRYPT_COST);
-  const user = await User.create({
-    name,
-    email,
-    phone: phone || '',
-    passwordHash,
-    role: 'customer',
-  });
+  let user;
+  try {
+    user = await User.create({
+      name,
+      email: normalizedEmail,
+      phone: phone || '',
+      passwordHash,
+      role: 'customer',
+    });
+  } catch (err) {
+    const fields = Object.keys(err?.keyPattern || err?.keyValue || {});
+    if (err?.code === 11000 && fields.includes('email')) {
+      throw ApiError.conflict('Email already registered');
+    }
+    throw err;
+  }
   const { accessToken, refreshToken } = tokensFor(user, AUDIENCE.STOREFRONT);
   user.refreshTokenHash = hashToken(refreshToken);
   user.lastLoginAt = new Date();
   await user.save();
-  if (guestId) await mergeGuestCart(user._id, guestId);
+  if (guestId) {
+    try {
+      await mergeGuestCart(user._id, guestId);
+    } catch (err) {
+      console.warn('[auth] guest cart merge skipped:', err.message);
+    }
+  }
   return { user, accessToken, refreshToken };
 }
 
 export async function login({ email, password, guestId }) {
-  const user = await User.findOne({ email }).select('+passwordHash +refreshTokenHash');
+  const user = await User.findOne({ email: String(email || '').trim().toLowerCase() }).select('+passwordHash +refreshTokenHash');
   if (!user) throw ApiError.unauthorized('Invalid email or password');
   if (user.role === 'superadmin') {
     throw ApiError.forbidden('Staff accounts sign in at the admin console.');
@@ -58,12 +75,18 @@ export async function login({ email, password, guestId }) {
   user.refreshTokenHash = hashToken(refreshToken);
   user.lastLoginAt = new Date();
   await user.save();
-  if (guestId) await mergeGuestCart(user._id, guestId);
+  if (guestId) {
+    try {
+      await mergeGuestCart(user._id, guestId);
+    } catch (err) {
+      console.warn('[auth] guest cart merge skipped:', err.message);
+    }
+  }
   return { user, accessToken, refreshToken };
 }
 
 export async function adminLogin({ email, password }) {
-  const user = await User.findOne({ email }).select('+passwordHash +adminRefreshTokenHash');
+  const user = await User.findOne({ email: String(email || '').trim().toLowerCase() }).select('+passwordHash +adminRefreshTokenHash');
   if (!user || user.role !== 'superadmin') {
     throw ApiError.unauthorized('Invalid email or password');
   }
@@ -109,7 +132,13 @@ export async function refresh(refreshToken, guestId, audience = AUDIENCE.STOREFR
   const tokens = tokensFor(user, audience);
   user[field] = hashToken(tokens.refreshToken);
   await user.save();
-  if (guestId && audience === AUDIENCE.STOREFRONT) await mergeGuestCart(user._id, guestId);
+  if (guestId && audience === AUDIENCE.STOREFRONT) {
+    try {
+      await mergeGuestCart(user._id, guestId);
+    } catch (err) {
+      console.warn('[auth] guest cart merge skipped:', err.message);
+    }
+  }
   return { user, ...tokens };
 }
 

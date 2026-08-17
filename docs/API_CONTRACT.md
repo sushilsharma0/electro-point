@@ -24,11 +24,11 @@ IDs: Mongo ObjectId strings. Slugs: unique, URL-safe.
 | POST | `/auth/refresh` | customer refresh cookie |
 | POST | `/auth/forgot-password` | public |
 | POST | `/auth/reset-password` | public |
-| GET | `/auth/me` | customer auth |
+| GET | `/auth/me` | public — `{ user }` or `{ user: null }` |
 | POST | `/auth/admin/login` | public (superadmin only) |
 | POST | `/auth/admin/logout` | admin auth |
 | POST | `/auth/admin/refresh` | admin refresh cookie |
-| GET | `/auth/admin/me` | admin auth |
+| GET | `/auth/admin/me` | public — admin `{ user }` or `{ user: null }` |
 
 ## Catalog (public)
 

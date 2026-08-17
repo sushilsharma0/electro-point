@@ -85,5 +85,35 @@ export const resetPassword = asyncHandler(async (req, res) => {
 });
 
 export const me = asyncHandler(async (req, res) => {
-  return ok(res, withCsrf(res, { user: req.user.toPublic() }, req));
+  if (req.user) {
+    return ok(res, withCsrf(res, { user: req.user.toPublic() }, req));
+  }
+  try {
+    const { user, accessToken, refreshToken } = await authService.refresh(
+      req.cookies?.[COOKIE.REFRESH],
+      guestId(req),
+      AUDIENCE.STOREFRONT,
+    );
+    setAuthCookies(res, { accessToken, refreshToken });
+    return ok(res, withCsrf(res, { user: user.toPublic() }, req));
+  } catch {
+    return ok(res, withCsrf(res, { user: null }, req));
+  }
+});
+
+export const adminMe = asyncHandler(async (req, res) => {
+  if (req.admin) {
+    return ok(res, withCsrf(res, { user: req.admin.toPublic() }, req));
+  }
+  try {
+    const { user, accessToken, refreshToken } = await authService.refresh(
+      req.cookies?.[COOKIE.ADMIN_REFRESH],
+      null,
+      AUDIENCE.ADMIN,
+    );
+    setAdminAuthCookies(res, { accessToken, refreshToken });
+    return ok(res, withCsrf(res, { user: user.toPublic() }, req));
+  } catch {
+    return ok(res, withCsrf(res, { user: null }, req));
+  }
 });

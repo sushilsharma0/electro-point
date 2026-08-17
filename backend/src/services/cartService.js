@@ -180,13 +180,23 @@ export async function removeCoupon({ userId, guestId }) {
 }
 
 export async function mergeGuestCart(userId, guestId) {
-  if (!guestId) return;
+  if (!guestId || !userId) return;
   const guest = await Cart.findOne({ guestId });
-  if (!guest || !guest.items.length) {
-    if (guest) await guest.deleteOne();
+  if (!guest) return;
+  if (!guest.items.length) {
+    await guest.deleteOne();
     return;
   }
-  const userCart = await getOrCreateCart({ userId });
+
+  const userCart = await Cart.findOne({ user: userId });
+  if (!userCart) {
+    await Cart.updateOne(
+      { _id: guest._id },
+      { $set: { user: userId }, $unset: { guestId: 1 } },
+    );
+    return;
+  }
+
   for (const item of guest.items) {
     const existing = userCart.items.find(
       (i) => String(i.product) === String(item.product) && String(i.variantId || '') === String(item.variantId || ''),

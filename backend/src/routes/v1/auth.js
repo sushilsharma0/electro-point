@@ -14,11 +14,11 @@ router.post('/logout', requireAuth, validate(empty), auth.logout);
 router.post('/refresh', auth.refresh);
 router.post('/forgot-password', authLimiter, validate(forgotPasswordSchema), auth.forgotPassword);
 router.post('/reset-password', authLimiter, validate(resetPasswordSchema), auth.resetPassword);
-router.get('/me', requireAuth, auth.me);
+router.get('/me', auth.me);
 
 router.post('/admin/login', authLimiter, validate(loginSchema), auth.adminLogin);
 router.post('/admin/logout', requireAdminAuth, validate(empty), auth.adminLogout);
 router.post('/admin/refresh', auth.adminRefresh);
-router.get('/admin/me', requireAdminAuth, auth.me);
+router.get('/admin/me', auth.adminMe);
 
 export default router;

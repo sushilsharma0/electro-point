@@ -45,8 +45,12 @@ function unwrap(json) {
 let storefrontRefreshPromise = null;
 let adminRefreshPromise = null;
 
-function isAdminApiPath(path) {
-  return path.startsWith('/admin') || path.startsWith('/auth/admin');
+function shouldAttemptRefresh(path) {
+  if (path.includes('/refresh') || path.includes('/login') || path.includes('/logout') || path.includes('/register')) {
+    return false;
+  }
+  if (path === '/auth/me' || path === '/auth/admin/me') return false;
+  return true;
 }
 
 async function tryRefresh(audience = 'storefront') {
@@ -107,9 +111,9 @@ export async function api(path, { method = 'GET', body, params, headers = {}, si
     body: body == null ? undefined : isForm ? body : JSON.stringify(body),
   });
 
-  if (res.status === 401 && retry && !path.includes('/refresh') && !path.includes('/login') && !path.includes('/logout')) {
+  if (res.status === 401 && retry && shouldAttemptRefresh(path)) {
     try {
-      await tryRefresh(isAdminApiPath(path) ? 'admin' : 'storefront');
+      await tryRefresh(path.startsWith('/admin') || path.startsWith('/auth/admin') ? 'admin' : 'storefront');
       return api(path, { method, body, params, headers, signal, retry: false });
     } catch {
       /* fall through */

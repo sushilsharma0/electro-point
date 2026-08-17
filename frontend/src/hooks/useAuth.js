@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { authApi, ApiError } from '@/lib/api';
+import { authApi } from '@/lib/api';
 import { toast } from 'sonner';
 
 function resolveUser(data) {
@@ -12,12 +12,8 @@ export function useAuth() {
   const query = useQuery({
     queryKey: ['auth', 'me'],
     queryFn: async () => {
-      try {
-        return await authApi.me();
-      } catch (err) {
-        if (err instanceof ApiError && (err.status === 401 || err.status === 403)) return null;
-        throw err;
-      }
+      const data = await authApi.me();
+      return data;
     },
     staleTime: 60_000,
     retry: false,
@@ -68,12 +64,8 @@ export function useAdminAuth() {
   const query = useQuery({
     queryKey: ['auth', 'admin'],
     queryFn: async () => {
-      try {
-        return await authApi.adminMe();
-      } catch (err) {
-        if (err instanceof ApiError && (err.status === 401 || err.status === 403)) return null;
-        throw err;
-      }
+      const data = await authApi.adminMe();
+      return data;
     },
     staleTime: 60_000,
     retry: false,

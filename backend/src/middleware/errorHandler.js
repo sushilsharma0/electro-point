@@ -32,9 +32,15 @@ export function errorHandler(err, req, res, _next) {
   }
 
   if (err?.code === 11000) {
+    const fields = Object.keys(err.keyPattern || err.keyValue || {});
+    const emailClash = fields.includes('email');
     return res.status(409).json({
       success: false,
-      error: { code: 'CONFLICT', message: 'Duplicate value', details: [] },
+      error: {
+        code: 'CONFLICT',
+        message: emailClash ? 'Email already registered' : 'Duplicate value',
+        details: emailClash ? [{ path: 'body.email', message: 'Email already registered' }] : [],
+      },
     });
   }
 

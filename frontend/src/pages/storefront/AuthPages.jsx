@@ -11,15 +11,18 @@ import { Container } from '@/components/layout/Container';
 import { Seo } from '@/components/Seo';
 import { toast } from 'sonner';
 import { StaffLoginLink } from '@/components/layout/StaffLoginLink';
+import { PASSWORD_HINT, applyApiFieldErrors, apiErrorMessage, passwordSchema } from '@/lib/validation';
 
 const loginSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(8, 'Minimum 8 characters'),
+  password: z.string().min(1, 'Enter your password'),
 });
 
-const registerSchema = loginSchema.extend({
-  name: z.string().min(2),
-  phone: z.string().optional(),
+const registerSchema = z.object({
+  name: z.string().trim().min(2, 'Name must be at least 2 characters'),
+  email: z.string().trim().email(),
+  phone: z.string().trim().max(20).optional(),
+  password: passwordSchema(z),
 });
 
 export function LoginPage() {
@@ -95,11 +98,26 @@ export function RegisterPage() {
         className="mt-8 space-y-4"
         onSubmit={form.handleSubmit(async (values) => {
           try {
-            await registerMut.mutateAsync(values);
+            await registerMut.mutateAsync({
+              ...values,
+              phone: values.phone?.trim() || '',
+            });
             toast.success('Account created');
             nav(next);
           } catch (err) {
-            toast.error(err.message || 'Could not register');
+            const emailTaken =
+              (err.status === 409 || err.code === 'CONFLICT') &&
+              /email already registered/i.test(err.message || '');
+            if (emailTaken) {
+              form.setError('email', {
+                type: 'server',
+                message: 'This email is already registered. Sign in instead.',
+              });
+              toast.error('This email is already registered.');
+              return;
+            }
+            applyApiFieldErrors(form.setError, err);
+            toast.error(apiErrorMessage(err, 'Could not register'));
           }
         })}
       >
@@ -110,7 +128,13 @@ export function RegisterPage() {
         </div>
         <div>
           <Label htmlFor="email">Email</Label>
-          <Input id="email" type="email" className="mt-1" autoComplete="email" {...form.register('email')} />
+          <Input
+            id="email"
+            type="email"
+            className="mt-1"
+            autoComplete="email"
+            {...form.register('email', { onChange: () => form.clearErrors('email') })}
+          />
           <FieldError>{form.formState.errors.email?.message}</FieldError>
         </div>
         <div>
@@ -120,6 +144,7 @@ export function RegisterPage() {
         <div>
           <Label htmlFor="password">Password</Label>
           <Input id="password" type="password" className="mt-1" autoComplete="new-password" {...form.register('password')} />
+          <p className="mt-1 text-xs text-muted">{PASSWORD_HINT}</p>
           <FieldError>{form.formState.errors.password?.message}</FieldError>
         </div>
         <Button type="submit" className="w-full" disabled={registerMut.isPending}>
@@ -128,7 +153,7 @@ export function RegisterPage() {
       </form>
       <p className="mt-4 text-sm text-muted">
         Already have an account?{' '}
-        <Link to="/login" className="text-accent hover:underline">
+        <Link to={`/login?next=${encodeURIComponent(next)}`} className="text-accent hover:underline">
           Sign in
         </Link>
       </p>
@@ -171,7 +196,11 @@ export function ResetPasswordPage() {
   const [sp] = useSearchParams();
   const token = sp.get('token') || '';
   const form = useForm({
-    resolver: zodResolver(z.object({ password: z.string().min(8), confirm: z.string().min(8) }).refine((d) => d.password === d.confirm, { message: 'Passwords must match', path: ['confirm'] })),
+    resolver: zodResolver(
+      z
+        .object({ password: passwordSchema(z), confirm: z.string().min(8) })
+        .refine((d) => d.password === d.confirm, { message: 'Passwords must match', path: ['confirm'] }),
+    ),
   });
   const nav = useNavigate();
 
@@ -187,13 +216,15 @@ export function ResetPasswordPage() {
             toast.success('Password updated');
             nav('/login');
           } catch (err) {
-            toast.error(err.message);
+            applyApiFieldErrors(form.setError, err);
+            toast.error(apiErrorMessage(err, 'Could not update password'));
           }
         })}
       >
         <div>
           <Label htmlFor="password">Password</Label>
-          <Input id="password" type="password" className="mt-1" {...form.register('password')} />
+          <Input id="password" type="password" className="mt-1" autoComplete="new-password" {...form.register('password')} />
+          <p className="mt-1 text-xs text-muted">{PASSWORD_HINT}</p>
           <FieldError>{form.formState.errors.password?.message}</FieldError>
         </div>
         <div>
