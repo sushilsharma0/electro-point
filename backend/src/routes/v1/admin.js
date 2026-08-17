@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import * as admin from '../../controllers/adminController.js';
-import { requireAuth } from '../../middleware/auth.js';
+import { requireAdminAuth } from '../../middleware/auth.js';
 import { requireSuperadmin } from '../../middleware/admin.js';
 import { validate } from '../../middleware/validate.js';
 import { singleImage, singleModel } from '../../middleware/upload.js';
@@ -16,7 +16,7 @@ import {
   settingsUpdateSchema,
 } from '../../validators/admin.js';
 const router = Router();
-router.use(requireAuth, requireSuperadmin);
+router.use(requireAdminAuth, requireSuperadmin);
 
 router.get('/products', admin.listProducts);
 router.post('/products', validate(adminProductCreateSchema), admin.createProduct);

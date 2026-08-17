@@ -34,7 +34,9 @@ npm run dev
 ```
 
 Storefront: http://localhost:5173  
-Admin: http://localhost:5173/admin  
+Customer login: http://localhost:5173/login  
+Admin login: http://localhost:5173/admin/login (opens in a new tab from the storefront “Staff login” link)  
+Admin console: http://localhost:5173/admin  
 API: http://localhost:5000/api/v1
 
 `npm run seed` creates **only** the Super Admin. Set `ADMIN_EMAIL` and a unique `ADMIN_PASSWORD` (min 8 characters) in `backend/.env` first — seed will not run with an empty or published default password. Categories, products, coupons, and customers are not seeded — add catalog in `/admin`, and customers sign up at `/register`.

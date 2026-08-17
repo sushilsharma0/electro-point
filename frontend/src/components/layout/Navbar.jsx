@@ -16,7 +16,7 @@ import { listFrom } from '@/lib/api';
 import { cn } from '@/lib/cn';
 
 export function Navbar() {
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
   const { count } = useCart();
   const cats = useCategories();
   const categories = listFrom(cats.data);
@@ -154,7 +154,7 @@ export function Navbar() {
             </Link>
           </Button>
           <Button asChild variant="ghost" size="icon" aria-label={user ? 'Account' : 'Sign in'}>
-            <Link to={user ? (isAdmin ? '/admin' : '/account') : '/login'}>
+            <Link to={user ? '/account' : '/login'}>
               <User />
             </Link>
           </Button>

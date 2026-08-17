@@ -1,4 +1,4 @@
-import { NavLink, Outlet, Link } from 'react-router-dom';
+import { NavLink, Outlet } from 'react-router-dom';
 import {
   BarChart3,
   Boxes,
@@ -17,7 +17,7 @@ import {
 import { Logo } from '@/components/layout/Logo';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/useAuth';
+import { useAdminAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/cn';
 
 const LINKS = [
@@ -35,7 +35,7 @@ const LINKS = [
 ];
 
 export function AdminLayout() {
-  const { logout, user } = useAuth();
+  const { logout, user } = useAdminAuth();
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -44,7 +44,7 @@ export function AdminLayout() {
       </a>
       <aside className="sticky top-0 hidden h-screen w-56 shrink-0 flex-col border-r border-border bg-surface lg:flex">
         <div className="flex h-14 items-center border-b border-border px-4">
-          <Logo />
+          <Logo to="/admin/dashboard" />
         </div>
         <nav className="flex-1 overflow-y-auto p-2" aria-label="Admin">
           {LINKS.map(({ to, label, icon: Icon }) => (
@@ -72,10 +72,18 @@ export function AdminLayout() {
           <span className="font-display text-sm font-semibold lg:hidden">Admin</span>
           <div className="ml-auto flex items-center gap-2">
             <Button asChild variant="ghost" size="sm">
-              <Link to="/">Storefront</Link>
+              <a href="/" target="_blank" rel="noopener noreferrer">
+                Storefront
+              </a>
             </Button>
             <ThemeToggle />
-            <Button type="button" variant="ghost" size="icon" aria-label="Sign out" onClick={() => logout.mutate()}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Sign out"
+              onClick={() => logout.mutate(undefined, { onSuccess: () => window.location.assign('/admin/login') })}
+            >
               <LogOut className="h-4 w-4" />
             </Button>
           </div>

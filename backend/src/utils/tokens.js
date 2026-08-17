@@ -10,17 +10,22 @@ export function randomToken(bytes = 32) {
   return crypto.randomBytes(bytes).toString('hex');
 }
 
-export function signAccessToken(user) {
+export const AUDIENCE = {
+  STOREFRONT: 'storefront',
+  ADMIN: 'admin',
+};
+
+export function signAccessToken(user, audience = AUDIENCE.STOREFRONT) {
   return jwt.sign(
-    { sub: String(user._id), role: user.role },
+    { sub: String(user._id), role: user.role, aud: audience },
     env.JWT_ACCESS_SECRET,
     { expiresIn: env.JWT_ACCESS_TTL },
   );
 }
 
-export function signRefreshToken(user) {
+export function signRefreshToken(user, audience = AUDIENCE.STOREFRONT) {
   return jwt.sign(
-    { sub: String(user._id), typ: 'refresh' },
+    { sub: String(user._id), typ: 'refresh', aud: audience },
     env.JWT_REFRESH_SECRET,
     { expiresIn: env.JWT_REFRESH_TTL },
   );

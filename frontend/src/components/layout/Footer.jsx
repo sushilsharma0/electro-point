@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Container } from '@/components/layout/Container';
 import { useCategories, useSettings } from '@/hooks/useCatalog';
 import { listFrom } from '@/lib/api';
+import { StaffLoginLink } from '@/components/layout/StaffLoginLink';
 
 export function Footer() {
   const { settings } = useSettings();
@@ -56,7 +57,11 @@ export function Footer() {
       <div className="border-t border-border">
         <Container className="flex flex-col gap-2 py-4 text-xs text-muted sm:flex-row sm:justify-between">
           <p>© {new Date().getFullYear()} ElectroPoint. All rights reserved.</p>
-          <p>Payments: eSewa · Khalti · Amounts in NPR</p>
+          <p>
+            Payments: eSewa · Khalti · Amounts in NPR
+            <span className="mx-2 text-border">|</span>
+            <StaffLoginLink className="hover:text-foreground" />
+          </p>
         </Container>
       </div>
     </footer>

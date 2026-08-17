@@ -8,6 +8,8 @@ const CSRF_EXEMPT = new Set([
   'POST /api/v1/auth/refresh',
   'POST /api/v1/auth/forgot-password',
   'POST /api/v1/auth/reset-password',
+  'POST /api/v1/auth/admin/login',
+  'POST /api/v1/auth/admin/refresh',
 ]);
 
 const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);

@@ -10,6 +10,7 @@ const userSchema = new mongoose.Schema(
     status: { type: String, enum: ['active', 'suspended'], default: 'active', index: true },
     emailVerified: { type: Boolean, default: false },
     refreshTokenHash: { type: String, select: false, default: '' },
+    adminRefreshTokenHash: { type: String, select: false, default: '' },
     passwordResetTokenHash: { type: String, select: false, default: '' },
     passwordResetExpires: { type: Date, select: false, default: null },
     lastLoginAt: { type: Date, default: null },

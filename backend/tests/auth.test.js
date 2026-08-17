@@ -50,31 +50,53 @@ describe('auth and admin authorization', { timeout: 120_000 }, () => {
       password: 'Customer#12345',
     });
     const res = await api.get('/api/v1/admin/analytics');
-    assert.equal(res.status, 403);
+    assert.equal(res.status, 401);
     assert.equal(res.body.success, false);
-    assert.equal(res.body.error.code, 'FORBIDDEN');
+    assert.equal(res.body.error.code, 'UNAUTHORIZED');
   });
 
-  it('allows superadmin into admin analytics', async () => {
+  it('keeps admin login off the customer storefront session', async () => {
     const { User } = await import('../src/models/User.js');
     const { env } = await import('../src/config/env.js');
     const passwordHash = await bcrypt.hash(env.ADMIN_PASSWORD, 12);
+    const email = `admin${Date.now()}@electropoint.com`;
     await User.create({
       name: 'Admin',
-      email: `admin${Date.now()}@electropoint.com`,
+      email,
       passwordHash,
       role: 'superadmin',
       status: 'active',
     });
-    const api = client(app);
-    await api.initCsrf();
-    const login = await api.post('/api/v1/auth/login').send({
-      email: (await User.findOne({ role: 'superadmin' })).email,
+
+    const store = client(app);
+    await store.initCsrf();
+    const customerLogin = await store.post('/api/v1/auth/login').send({
+      email,
+      password: env.ADMIN_PASSWORD,
+    });
+    assert.equal(customerLogin.status, 403);
+    assert.equal(customerLogin.body.error.code, 'FORBIDDEN');
+
+    const admin = client(app);
+    await admin.initCsrf();
+    const login = await admin.post('/api/v1/auth/admin/login').send({
+      email,
       password: env.ADMIN_PASSWORD,
     });
     assert.equal(login.status, 200);
     assert.equal(login.body.data.user.role, 'superadmin');
-    const analytics = await api.get('/api/v1/admin/analytics');
+    const cookies = login.headers['set-cookie'] || [];
+    assert.ok(cookies.some((c) => c.startsWith('ep_admin_access=')));
+    assert.equal(cookies.some((c) => c.startsWith('ep_access=')), false);
+
+    const storefrontMe = await admin.get('/api/v1/auth/me');
+    assert.equal(storefrontMe.status, 401);
+
+    const adminMe = await admin.get('/api/v1/auth/admin/me');
+    assert.equal(adminMe.status, 200);
+    assert.equal(adminMe.body.data.user.email, email);
+
+    const analytics = await admin.get('/api/v1/admin/analytics');
     assert.equal(analytics.status, 200);
     assert.equal(typeof analytics.body.data.revenuePaisa, 'number');
     assert.ok(Array.isArray(analytics.body.data.topProducts));

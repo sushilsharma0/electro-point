@@ -3,6 +3,8 @@ import { env } from '../config/env.js';
 export const COOKIE = {
   ACCESS: 'ep_access',
   REFRESH: 'ep_refresh',
+  ADMIN_ACCESS: 'ep_admin_access',
+  ADMIN_REFRESH: 'ep_admin_refresh',
   CSRF: 'ep_csrf',
   CART: 'ep_cart',
 };
@@ -54,6 +56,17 @@ export function clearAuthCookies(res) {
   const opts = { ...baseCookieOptions(), httpOnly: true };
   res.clearCookie(COOKIE.ACCESS, opts);
   res.clearCookie(COOKIE.REFRESH, opts);
+}
+
+export function setAdminAuthCookies(res, { accessToken, refreshToken }) {
+  res.cookie(COOKIE.ADMIN_ACCESS, accessToken, authCookieOptions(ACCESS_MAX_AGE));
+  res.cookie(COOKIE.ADMIN_REFRESH, refreshToken, authCookieOptions(REFRESH_MAX_AGE));
+}
+
+export function clearAdminAuthCookies(res) {
+  const opts = { ...baseCookieOptions(), httpOnly: true };
+  res.clearCookie(COOKIE.ADMIN_ACCESS, opts);
+  res.clearCookie(COOKIE.ADMIN_REFRESH, opts);
 }
 
 export function setCsrfCookie(res, token) {

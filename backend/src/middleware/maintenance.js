@@ -3,7 +3,7 @@ import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const maintenanceGuard = asyncHandler(async (req, _res, next) => {
-  if (req.user?.role === 'superadmin') return next();
+  if (req.admin?.role === 'superadmin' || req.user?.role === 'superadmin') return next();
   if (req.method === 'GET' && (req.path === '/health' || req.originalUrl.startsWith('/api/v1/settings') || req.originalUrl.startsWith('/api/v1/csrf'))) {
     return next();
   }

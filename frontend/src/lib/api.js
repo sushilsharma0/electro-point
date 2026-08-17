@@ -42,11 +42,19 @@ function unwrap(json) {
   return json;
 }
 
-let refreshPromise = null;
+let storefrontRefreshPromise = null;
+let adminRefreshPromise = null;
 
-async function tryRefresh() {
-  if (!refreshPromise) {
-    refreshPromise = fetch('/api/v1/auth/refresh', {
+function isAdminApiPath(path) {
+  return path.startsWith('/admin') || path.startsWith('/auth/admin');
+}
+
+async function tryRefresh(audience = 'storefront') {
+  const isAdmin = audience === 'admin';
+  const bucket = isAdmin ? 'admin' : 'storefront';
+  const url = isAdmin ? '/api/v1/auth/admin/refresh' : '/api/v1/auth/refresh';
+  if (bucket === 'admin' && !adminRefreshPromise) {
+    adminRefreshPromise = fetch(url, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
@@ -56,10 +64,24 @@ async function tryRefresh() {
         return res;
       })
       .finally(() => {
-        refreshPromise = null;
+        adminRefreshPromise = null;
       });
   }
-  return refreshPromise;
+  if (bucket === 'storefront' && !storefrontRefreshPromise) {
+    storefrontRefreshPromise = fetch(url, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new ApiError('Session expired', { status: res.status, code: 'UNAUTHORIZED' });
+        return res;
+      })
+      .finally(() => {
+        storefrontRefreshPromise = null;
+      });
+  }
+  return isAdmin ? adminRefreshPromise : storefrontRefreshPromise;
 }
 
 export async function api(path, { method = 'GET', body, params, headers = {}, signal, retry = true } = {}) {
@@ -85,9 +107,9 @@ export async function api(path, { method = 'GET', body, params, headers = {}, si
     body: body == null ? undefined : isForm ? body : JSON.stringify(body),
   });
 
-  if (res.status === 401 && retry && !path.startsWith('/auth/')) {
+  if (res.status === 401 && retry && !path.includes('/refresh') && !path.includes('/login') && !path.includes('/logout')) {
     try {
-      await tryRefresh();
+      await tryRefresh(isAdminApiPath(path) ? 'admin' : 'storefront');
       return api(path, { method, body, params, headers, signal, retry: false });
     } catch {
       /* fall through */
@@ -124,6 +146,9 @@ export const authApi = {
   logout: () => api('/auth/logout', { method: 'POST' }),
   forgotPassword: (body) => api('/auth/forgot-password', { method: 'POST', body }),
   resetPassword: (body) => api('/auth/reset-password', { method: 'POST', body }),
+  adminMe: () => api('/auth/admin/me'),
+  adminLogin: (body) => api('/auth/admin/login', { method: 'POST', body }),
+  adminLogout: () => api('/auth/admin/logout', { method: 'POST' }),
 };
 
 export const catalogApi = {

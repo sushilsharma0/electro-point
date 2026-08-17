@@ -2,6 +2,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { authApi, ApiError } from '@/lib/api';
 import { toast } from 'sonner';
 
+function resolveUser(data) {
+  const user = data?.user || data || null;
+  return user && (user._id || user.id || user.email) ? user : null;
+}
+
 export function useAuth() {
   const qc = useQueryClient();
   const query = useQuery({
@@ -18,8 +23,7 @@ export function useAuth() {
     retry: false,
   });
 
-  const user = query.data?.user || query.data || null;
-  const resolved = user && (user._id || user.id || user.email) ? user : null;
+  const resolved = resolveUser(query.data);
 
   const login = useMutation({
     mutationFn: authApi.login,
@@ -52,9 +56,52 @@ export function useAuth() {
     user: resolved,
     isLoading: query.isLoading,
     isCustomer: resolved?.role === 'customer',
-    isAdmin: resolved?.role === 'superadmin',
     login,
     register,
+    logout,
+    refetch: query.refetch,
+  };
+}
+
+export function useAdminAuth() {
+  const qc = useQueryClient();
+  const query = useQuery({
+    queryKey: ['auth', 'admin'],
+    queryFn: async () => {
+      try {
+        return await authApi.adminMe();
+      } catch (err) {
+        if (err instanceof ApiError && (err.status === 401 || err.status === 403)) return null;
+        throw err;
+      }
+    },
+    staleTime: 60_000,
+    retry: false,
+  });
+
+  const resolved = resolveUser(query.data);
+  const isAdmin = resolved?.role === 'superadmin';
+
+  const login = useMutation({
+    mutationFn: authApi.adminLogin,
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ['auth', 'admin'] });
+    },
+  });
+
+  const logout = useMutation({
+    mutationFn: authApi.adminLogout,
+    onSuccess: () => {
+      qc.setQueryData(['auth', 'admin'], null);
+      toast.success('Signed out of admin');
+    },
+  });
+
+  return {
+    user: isAdmin ? resolved : null,
+    isLoading: query.isLoading,
+    isAdmin,
+    login,
     logout,
     refetch: query.refetch,
   };

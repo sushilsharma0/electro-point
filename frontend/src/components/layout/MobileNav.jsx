@@ -4,9 +4,10 @@ import { SearchBox } from '@/components/layout/SearchBox';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/useAuth';
+import { StaffLoginLink } from '@/components/layout/StaffLoginLink';
 
 export function MobileNav({ open, onOpenChange, categories = [] }) {
-  const { user, isAdmin, logout } = useAuth();
+  const { user, logout } = useAuth();
   const close = () => onOpenChange(false);
 
   return (
@@ -28,9 +29,7 @@ export function MobileNav({ open, onOpenChange, categories = [] }) {
           <Link to="/compare" onClick={close}>Compare</Link>
           <Link to="/account/wishlist" onClick={close}>Wishlist</Link>
           <Link to={user ? '/account' : '/login'} onClick={close}>{user ? 'Account' : 'Sign in'}</Link>
-          {isAdmin ? (
-            <Link to="/admin" onClick={close}>Admin</Link>
-          ) : null}
+          <StaffLoginLink className="py-2 text-muted hover:text-foreground" onClick={close} />
           <Link to="/contact" onClick={close}>Contact</Link>
           {user ? (
             <button type="button" className="cursor-pointer py-2 text-left text-danger" onClick={() => { logout.mutate(); close(); }}>

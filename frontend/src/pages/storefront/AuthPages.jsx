@@ -10,6 +10,7 @@ import { Label, FieldError } from '@/components/ui/label';
 import { Container } from '@/components/layout/Container';
 import { Seo } from '@/components/Seo';
 import { toast } from 'sonner';
+import { StaffLoginLink } from '@/components/layout/StaffLoginLink';
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -25,7 +26,8 @@ export function LoginPage() {
   const { login } = useAuth();
   const nav = useNavigate();
   const [sp] = useSearchParams();
-  const next = sp.get('next') || '/account';
+  const rawNext = sp.get('next') || '/account';
+  const next = rawNext.startsWith('/admin') ? '/account' : rawNext;
   const form = useForm({ resolver: zodResolver(loginSchema), defaultValues: { email: '', password: '' } });
 
   return (
@@ -69,6 +71,10 @@ export function LoginPage() {
         <Link to={`/register?next=${encodeURIComponent(next)}`} className="text-accent hover:underline">
           Create an account
         </Link>
+      </p>
+      <p className="mt-2 text-sm text-muted">
+        Staff?{' '}
+        <StaffLoginLink className="text-accent hover:underline" />
       </p>
     </Container>
   );

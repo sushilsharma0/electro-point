@@ -79,8 +79,7 @@ async function seed() {
   }
 
   console.log(`Super Admin ready: ${admin.email}`);
-  console.log('Categories, products, coupons, and customers are not seeded.');
-  console.log('Create catalog in /admin. Customers sign up at /register.');
+  console.log('Sign in at /admin/login (staff console). Customers sign up at /register.');
   await disconnectDb();
 }
 

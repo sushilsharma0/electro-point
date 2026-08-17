@@ -3,6 +3,7 @@ import { User } from '../models/User.js';
 import { env } from '../config/env.js';
 import { ApiError } from '../utils/ApiError.js';
 import {
+  AUDIENCE,
   hashToken,
   randomToken,
   signAccessToken,
@@ -15,10 +16,14 @@ import { mergeGuestCart } from './cartService.js';
 
 const RESET_TTL_MS = 30 * 60 * 1000;
 
-function tokensFor(user) {
-  const accessToken = signAccessToken(user);
-  const refreshToken = signRefreshToken(user);
+function tokensFor(user, audience = AUDIENCE.STOREFRONT) {
+  const accessToken = signAccessToken(user, audience);
+  const refreshToken = signRefreshToken(user, audience);
   return { accessToken, refreshToken };
+}
+
+function refreshHashField(audience) {
+  return audience === AUDIENCE.ADMIN ? 'adminRefreshTokenHash' : 'refreshTokenHash';
 }
 
 export async function register({ name, email, password, phone, guestId }) {
@@ -32,7 +37,7 @@ export async function register({ name, email, password, phone, guestId }) {
     passwordHash,
     role: 'customer',
   });
-  const { accessToken, refreshToken } = tokensFor(user);
+  const { accessToken, refreshToken } = tokensFor(user, AUDIENCE.STOREFRONT);
   user.refreshTokenHash = hashToken(refreshToken);
   user.lastLoginAt = new Date();
   await user.save();
@@ -43,10 +48,13 @@ export async function register({ name, email, password, phone, guestId }) {
 export async function login({ email, password, guestId }) {
   const user = await User.findOne({ email }).select('+passwordHash +refreshTokenHash');
   if (!user) throw ApiError.unauthorized('Invalid email or password');
+  if (user.role === 'superadmin') {
+    throw ApiError.forbidden('Staff accounts sign in at the admin console.');
+  }
   if (user.status !== 'active') throw ApiError.forbidden('Account is suspended');
   const match = await bcrypt.compare(password, user.passwordHash);
   if (!match) throw ApiError.unauthorized('Invalid email or password');
-  const { accessToken, refreshToken } = tokensFor(user);
+  const { accessToken, refreshToken } = tokensFor(user, AUDIENCE.STOREFRONT);
   user.refreshTokenHash = hashToken(refreshToken);
   user.lastLoginAt = new Date();
   await user.save();
@@ -54,13 +62,28 @@ export async function login({ email, password, guestId }) {
   return { user, accessToken, refreshToken };
 }
 
-export async function logout(user) {
+export async function adminLogin({ email, password }) {
+  const user = await User.findOne({ email }).select('+passwordHash +adminRefreshTokenHash');
+  if (!user || user.role !== 'superadmin') {
+    throw ApiError.unauthorized('Invalid email or password');
+  }
+  if (user.status !== 'active') throw ApiError.forbidden('Account is suspended');
+  const match = await bcrypt.compare(password, user.passwordHash);
+  if (!match) throw ApiError.unauthorized('Invalid email or password');
+  const { accessToken, refreshToken } = tokensFor(user, AUDIENCE.ADMIN);
+  user.adminRefreshTokenHash = hashToken(refreshToken);
+  user.lastLoginAt = new Date();
+  await user.save();
+  return { user, accessToken, refreshToken };
+}
+
+export async function logout(user, audience = AUDIENCE.STOREFRONT) {
   if (user) {
-    await User.updateOne({ _id: user._id }, { $set: { refreshTokenHash: '' } });
+    await User.updateOne({ _id: user._id }, { $set: { [refreshHashField(audience)]: '' } });
   }
 }
 
-export async function refresh(refreshToken, guestId) {
+export async function refresh(refreshToken, guestId, audience = AUDIENCE.STOREFRONT) {
   if (!refreshToken) throw ApiError.unauthorized('Refresh token missing');
   let payload;
   try {
@@ -68,15 +91,25 @@ export async function refresh(refreshToken, guestId) {
   } catch {
     throw ApiError.unauthorized('Invalid refresh token');
   }
-  const user = await User.findById(payload.sub).select('+refreshTokenHash');
+  if (payload.aud && payload.aud !== audience) {
+    throw ApiError.unauthorized('Invalid refresh token');
+  }
+  if (!payload.aud && audience === AUDIENCE.ADMIN) {
+    throw ApiError.unauthorized('Invalid refresh token');
+  }
+
+  const field = refreshHashField(audience);
+  const user = await User.findById(payload.sub).select(`+${field}`);
   if (!user || user.status !== 'active') throw ApiError.unauthorized();
-  if (!user.refreshTokenHash || user.refreshTokenHash !== hashToken(refreshToken)) {
+  if (audience === AUDIENCE.ADMIN && user.role !== 'superadmin') throw ApiError.unauthorized();
+  if (audience === AUDIENCE.STOREFRONT && user.role === 'superadmin') throw ApiError.unauthorized();
+  if (!user[field] || user[field] !== hashToken(refreshToken)) {
     throw ApiError.unauthorized('Refresh token revoked');
   }
-  const tokens = tokensFor(user);
-  user.refreshTokenHash = hashToken(tokens.refreshToken);
+  const tokens = tokensFor(user, audience);
+  user[field] = hashToken(tokens.refreshToken);
   await user.save();
-  if (guestId) await mergeGuestCart(user._id, guestId);
+  if (guestId && audience === AUDIENCE.STOREFRONT) await mergeGuestCart(user._id, guestId);
   return { user, ...tokens };
 }
 
@@ -105,6 +138,7 @@ export async function resetPassword({ token, password }) {
   user.passwordResetTokenHash = '';
   user.passwordResetExpires = null;
   user.refreshTokenHash = '';
+  user.adminRefreshTokenHash = '';
   await user.save();
   return { user };
 }

@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { StorefrontLayout } from '@/components/layout/StorefrontLayout';
 import { CheckoutLayout } from '@/components/layout/CheckoutLayout';
 import { AdminLayout } from '@/components/layout/AdminLayout';
+import { AdminLoginLayout } from '@/components/layout/AdminLoginLayout';
 import { AccountLayout } from '@/components/layout/AccountLayout';
 import { RequireAuth, RequireAdmin } from '@/components/guards';
 import { NotFoundPage, ServerErrorPage } from '@/pages/errors/ErrorPages';
@@ -48,6 +49,7 @@ const AdminCouponsPage = lazy(() => import('@/pages/admin/AdminRest').then((m) =
 const AdminReviewsPage = lazy(() => import('@/pages/admin/AdminRest').then((m) => ({ default: m.AdminReviewsPage })));
 const AdminPaymentsPage = lazy(() => import('@/pages/admin/AdminRest').then((m) => ({ default: m.AdminPaymentsPage })));
 const AdminSettingsPage = lazy(() => import('@/pages/admin/AdminRest').then((m) => ({ default: m.AdminSettingsPage })));
+const AdminLoginPage = lazy(() => import('@/pages/admin/AdminLoginPage').then((m) => ({ default: m.AdminLoginPage })));
 
 function Fallback() {
   return (
@@ -103,6 +105,10 @@ export default function App() {
 
         <Route element={<CheckoutLayout />}>
           <Route path="/checkout" element={<CheckoutPage />} />
+        </Route>
+
+        <Route element={<AdminLoginLayout />}>
+          <Route path="/admin/login" element={<AdminLoginPage />} />
         </Route>
 
         <Route

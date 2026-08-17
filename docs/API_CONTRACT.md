@@ -1,7 +1,9 @@
 # ElectroPoint API contract
 
 Base: `/api/v1`  
-JSON only. Auth: HTTP-only cookies `ep_access` + `ep_refresh` (SameSite=Lax).  
+JSON only. Auth: HTTP-only cookies.  
+Customer session: `ep_access` + `ep_refresh`.  
+Admin session: `ep_admin_access` + `ep_admin_refresh` (separate; does not sign in the storefront).  
 CSRF: double-submit cookie `ep_csrf` required on mutating requests via header `X-CSRF-Token`.  
 Money: integer **paisa** in API (`amountPaisa`). Display NPR with 2 decimals.  
 IDs: Mongo ObjectId strings. Slugs: unique, URL-safe.
@@ -17,12 +19,16 @@ IDs: Mongo ObjectId strings. Slugs: unique, URL-safe.
 | Method | Path | Access |
 |--------|------|--------|
 | POST | `/auth/register` | public |
-| POST | `/auth/login` | public |
-| POST | `/auth/logout` | auth |
-| POST | `/auth/refresh` | public (refresh cookie) |
+| POST | `/auth/login` | public (customers only; staff is rejected) |
+| POST | `/auth/logout` | customer auth |
+| POST | `/auth/refresh` | customer refresh cookie |
 | POST | `/auth/forgot-password` | public |
 | POST | `/auth/reset-password` | public |
-| GET | `/auth/me` | auth |
+| GET | `/auth/me` | customer auth |
+| POST | `/auth/admin/login` | public (superadmin only) |
+| POST | `/auth/admin/logout` | admin auth |
+| POST | `/auth/admin/refresh` | admin refresh cookie |
+| GET | `/auth/admin/me` | admin auth |
 
 ## Catalog (public)
 
@@ -67,7 +73,7 @@ Never accept client `total` or `status`.
 | GET/PUT | `/account/profile` |
 | CRUD | `/account/addresses` |
 
-## Admin (`/admin/*`) — role `superadmin` on every request
+## Admin (`/admin/*`) — admin session cookie + role `superadmin`
 
 Products, categories, orders, customers, inventory, coupons, reviews, payments, analytics, settings, uploads.
 
