@@ -37,7 +37,9 @@ Storefront: http://localhost:5173
 Admin: http://localhost:5173/admin  
 API: http://localhost:5000/api/v1
 
-`npm run seed` creates **only** the Super Admin (`ADMIN_EMAIL` / `ADMIN_PASSWORD` in `.env`). Categories, products, coupons, and customers are not seeded — add catalog in `/admin`, and customers sign up at `/register`.
+`npm run seed` creates **only** the Super Admin. Set `ADMIN_EMAIL` and a unique `ADMIN_PASSWORD` (min 8 characters) in `backend/.env` first — seed will not run with an empty or published default password. Categories, products, coupons, and customers are not seeded — add catalog in `/admin`, and customers sign up at `/register`.
+
+Password reset requires SMTP (`SMTP_HOST` and `SMTP_USER`). If those are unset, `/auth/forgot-password` returns 503 instead of pretending the email was sent.
 
 To wipe catalog and non-admin users (keeps the Super Admin): `npm run seed:reset`.
 

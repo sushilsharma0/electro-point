@@ -79,4 +79,14 @@ describe('auth and admin authorization', { timeout: 120_000 }, () => {
     assert.equal(typeof analytics.body.data.revenuePaisa, 'number');
     assert.ok(Array.isArray(analytics.body.data.topProducts));
   });
+
+  it('rejects forgot-password when SMTP is not configured', async () => {
+    const api = client(app);
+    await api.initCsrf();
+    const res = await api.post('/api/v1/auth/forgot-password').send({ email: 'anyone@example.com' });
+    assert.equal(res.status, 503);
+    assert.equal(res.body.success, false);
+    assert.equal(res.body.error.code, 'UNAVAILABLE');
+    assert.match(res.body.error.message, /SMTP/i);
+  });
 });

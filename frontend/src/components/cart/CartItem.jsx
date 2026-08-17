@@ -4,14 +4,15 @@ import { Button } from '@/components/ui/button';
 import { formatNpr } from '@/lib/money';
 import { productImage, variantLabel } from '@/lib/product';
 
-export function CartItem({ item, onQty, onRemove }) {
+export function CartItem({ item, onQty, onRemove, compact = false }) {
   const product = item.product || item;
   const line = item.lineTotalPaisa ?? item.priceSnapshotPaisa * item.qty;
   const err = item.error || item.stockError;
+  const thumb = compact ? 'h-16 w-16' : 'h-24 w-24';
 
   return (
     <article className="flex gap-4 border-b border-border py-4">
-      <Link to={`/product/${product.slug}`} className="h-24 w-24 shrink-0 product-stage">
+      <Link to={`/product/${product.slug}`} className={`${thumb} shrink-0 product-stage`}>
         <img src={productImage(product)} alt={product.name} className="h-full w-full object-contain p-2" />
       </Link>
       <div className="min-w-0 flex-1">

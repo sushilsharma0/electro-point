@@ -39,7 +39,7 @@ export const env = {
   FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:5173',
   BACKEND_URL: process.env.BACKEND_URL || 'http://localhost:5000',
   ADMIN_EMAIL: process.env.ADMIN_EMAIL || 'ivan.p@example.net',
-  ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || 'ElectroPoint#Admin1',
+  ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || '',
   ESEWA_PRODUCT_CODE: process.env.ESEWA_PRODUCT_CODE || 'EPAYTEST',
   ESEWA_SECRET: requireInProduction('ESEWA_SECRET', process.env.ESEWA_SECRET) || '8gBm/:&EnhH.1/q',
   ESEWA_ENV: process.env.ESEWA_ENV || 'uat',

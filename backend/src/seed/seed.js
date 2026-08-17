@@ -16,9 +16,16 @@ import {
   Notification,
 } from '../models/index.js';
 
+const PUBLISHED_ADMIN_PASSWORDS = new Set(['ElectroPoint#Admin1']);
+
 async function upsertAdmin() {
   if (!env.ADMIN_PASSWORD || env.ADMIN_PASSWORD.length < 8) {
     throw new Error('Set ADMIN_PASSWORD (min 8 characters) in backend/.env before seeding.');
+  }
+  if (PUBLISHED_ADMIN_PASSWORDS.has(env.ADMIN_PASSWORD)) {
+    throw new Error(
+      'ADMIN_PASSWORD matches a published default. Set a unique password in backend/.env before seeding.',
+    );
   }
 
   const passwordHash = await bcrypt.hash(env.ADMIN_PASSWORD, env.BCRYPT_COST);

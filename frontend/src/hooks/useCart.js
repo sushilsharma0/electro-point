@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'react-router-dom';
 import { cartApi, checkoutApi } from '@/lib/api';
 import { useCartUi } from '@/store/cart';
 import { toast } from 'sonner';
 
 export function useCart() {
   const qc = useQueryClient();
+  const { pathname } = useLocation();
   const { openDrawer, pulse } = useCartUi();
 
   const query = useQuery({
@@ -22,7 +24,9 @@ export function useCart() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['cart'] });
       pulse();
-      openDrawer();
+      if (!pathname.startsWith('/cart') && !pathname.startsWith('/checkout')) {
+        openDrawer();
+      }
       toast.success('Added to cart');
     },
     onError: (err) => toast.error(err.message || 'Could not add to cart'),

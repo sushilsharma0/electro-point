@@ -3,6 +3,7 @@ import { AnnouncementBar } from '@/components/layout/AnnouncementBar';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { CompareBar } from '@/components/product/CompareBar';
+import { CartDrawer } from '@/components/cart/CartDrawer';
 
 export function StorefrontLayout() {
   return (
@@ -12,6 +13,7 @@ export function StorefrontLayout() {
       </a>
       <AnnouncementBar />
       <Navbar />
+      <CartDrawer />
       <main id="main" className="flex-1">
         <Outlet />
       </main>

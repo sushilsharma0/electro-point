@@ -1,10 +1,15 @@
 import nodemailer from 'nodemailer';
 import { env } from '../config/env.js';
+import { ApiError } from '../utils/ApiError.js';
 
 let transporter;
 
+export function isMailConfigured() {
+  return Boolean(env.SMTP_HOST && env.SMTP_USER);
+}
+
 function getTransporter() {
-  if (!env.SMTP_HOST || !env.SMTP_USER) return null;
+  if (!isMailConfigured()) return null;
   if (!transporter) {
     transporter = nodemailer.createTransport({
       host: env.SMTP_HOST,
@@ -19,8 +24,7 @@ function getTransporter() {
 export async function sendMail({ to, subject, text, html }) {
   const tx = getTransporter();
   if (!tx) {
-    if (!env.isTest) console.info('[email] SMTP not configured; skipped send to', to, 'subject:', subject);
-    return { skipped: true };
+    throw ApiError.unavailable('Email is not configured. Set SMTP_HOST and SMTP_USER.');
   }
   await tx.sendMail({ from: env.SMTP_FROM, to, subject, text, html });
   return { skipped: false };

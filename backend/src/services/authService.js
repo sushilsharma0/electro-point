@@ -10,7 +10,7 @@ import {
   verifyRefreshToken,
 } from '../utils/tokens.js';
 import { COOKIE } from '../utils/cookies.js';
-import { sendPasswordReset } from './emailService.js';
+import { isMailConfigured, sendPasswordReset } from './emailService.js';
 import { mergeGuestCart } from './cartService.js';
 
 const RESET_TTL_MS = 30 * 60 * 1000;
@@ -81,6 +81,9 @@ export async function refresh(refreshToken, guestId) {
 }
 
 export async function forgotPassword(email) {
+  if (!isMailConfigured()) {
+    throw ApiError.unavailable('Password reset email cannot be sent because SMTP is not configured.');
+  }
   const user = await User.findOne({ email });
   if (!user) return { ok: true };
   const token = randomToken(32);

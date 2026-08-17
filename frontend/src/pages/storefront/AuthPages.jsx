@@ -136,7 +136,7 @@ export function ForgotPasswordPage() {
     <Container className="max-w-md py-16">
       <Seo title="Forgot password" noindex />
       <h1 className="font-display text-h1">Reset password</h1>
-      <p className="mt-2 text-sm text-muted">If the email exists, we send a reset link. We do not reveal whether the account is registered.</p>
+      <p className="mt-2 text-sm text-muted">If the email exists, we send a reset link. We do not reveal whether the account is registered. You will see an error if email delivery is not configured on the server.</p>
       <form
         className="mt-8 space-y-4"
         onSubmit={form.handleSubmit(async (values) => {

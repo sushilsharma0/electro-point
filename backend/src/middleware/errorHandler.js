@@ -41,11 +41,13 @@ export function errorHandler(err, req, res, _next) {
   const status = err instanceof ApiError ? err.status : err.status || 500;
   const code = err instanceof ApiError ? err.code : 'INTERNAL_ERROR';
   const message =
-    status >= 500 && process.env.NODE_ENV === 'production'
-      ? 'Internal server error'
-      : err.message || 'Internal server error';
+    err instanceof ApiError
+      ? err.message
+      : status >= 500 && process.env.NODE_ENV === 'production'
+        ? 'Internal server error'
+        : err.message || 'Internal server error';
 
-  if (status >= 500) {
+  if (status >= 500 && code !== 'UNAVAILABLE') {
     console.error('[error]', err.name, err.message);
   }
 
