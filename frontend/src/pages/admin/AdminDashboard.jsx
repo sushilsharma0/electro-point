@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Bar, BarChart, Pie, PieChart, Cell } from 'recharts';
-import { adminApi, listFrom } from '@/lib/api';
+import { adminApi } from '@/lib/api';
 import { formatNpr } from '@/lib/money';
 import { Seo } from '@/components/Seo';
 import { NetworkErrorPage } from '@/pages/errors/ErrorPages';
@@ -14,14 +14,17 @@ export function AdminDashboardPage() {
   if (q.isError) return <NetworkErrorPage onRetry={() => q.refetch()} />;
   const d = q.data || {};
   const kpis = [
-    { label: 'Revenue', value: formatNpr(d.revenuePaisa || d.totalRevenuePaisa || 0) },
-    { label: 'Orders', value: d.ordersCount ?? d.orders ?? 0 },
-    { label: 'AOV', value: formatNpr(d.aovPaisa || d.averageOrderPaisa || 0) },
-    { label: 'Customers', value: d.customersCount ?? d.customers ?? 0 },
+    { label: 'Revenue', value: formatNpr(d.revenuePaisa || 0) },
+    { label: 'Orders', value: d.paidOrders ?? d.orderCount ?? 0 },
+    { label: 'AOV', value: formatNpr(d.averageOrderValuePaisa || 0) },
+    { label: 'Customers', value: d.customerCount ?? 0 },
   ];
-  const series = d.salesByDate || d.revenueByDay || [];
+  const series = (d.salesByDay || []).map((row) => ({
+    date: row.date,
+    revenue: row.revenuePaisa ?? row.revenue ?? 0,
+  }));
   const topProducts = d.topProducts || [];
-  const payments = d.paymentBreakdown || d.payments || [];
+  const payments = d.paymentMethodSplit || [];
   const lowStock = d.lowStock || [];
 
   return (
@@ -104,8 +107,11 @@ export function AdminAnalyticsPage() {
   const q = useQuery({ queryKey: ['admin-analytics', 'full'], queryFn: () => adminApi.analytics({ range: '90d' }) });
   if (q.isLoading) return null;
   const d = q.data || {};
-  const cats = d.topCategories || [];
-  const statuses = d.orderStatusBreakdown || d.statuses || [];
+  const cats = (d.topCategories || []).map((row) => ({
+    ...row,
+    revenue: row.revenuePaisa ?? row.revenue ?? 0,
+  }));
+  const statuses = d.orderStatusSplit || [];
   return (
     <div className="space-y-8">
       <Seo title="Analytics" noindex />

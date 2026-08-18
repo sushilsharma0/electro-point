@@ -20,7 +20,7 @@ function logBootWarnings() {
   if (!env.KHALTI_SECRET_KEY) {
     logger.warn('KHALTI_SECRET_KEY is empty — Khalti checkout will fail until it is set');
   }
-  if (env.ESEWA_ENV !== 'live') {
+  if (env.ESEWA_ENV !== 'live' && env.ESEWA_ENV !== 'production') {
     logger.warn(`eSewa is in ${env.ESEWA_ENV} mode (${env.ESEWA_PRODUCT_CODE}) — not live charges`);
   }
   if (!env.ADMIN_PASSWORD) {

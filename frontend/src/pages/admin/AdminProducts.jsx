@@ -98,6 +98,14 @@ const emptyProduct = {
   tags: '',
 };
 
+function flattenCategories(nodes, acc = []) {
+  for (const node of nodes || []) {
+    acc.push(node);
+    if (node.children?.length) flattenCategories(node.children, acc);
+  }
+  return acc;
+}
+
 export function AdminProductFormPage() {
   const { id } = useParams();
   const isNew = !id || id === 'new';
@@ -117,6 +125,8 @@ export function AdminProductFormPage() {
       setForm({
         ...emptyProduct,
         ...loaded,
+        category: loaded.category?._id || loaded.category || '',
+        subcategory: loaded.subcategory?._id || loaded.subcategory || '',
         tags: Array.isArray(loaded.tags) ? loaded.tags.join(', ') : loaded.tags || '',
         flags: { ...emptyProduct.flags, ...loaded.flags },
       });
@@ -172,7 +182,7 @@ export function AdminProductFormPage() {
     }
   };
 
-  const categories = listFrom(cats.data);
+  const categories = flattenCategories(listFrom(cats.data));
   if (!isNew && existing.isLoading) return null;
 
   return (

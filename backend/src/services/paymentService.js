@@ -82,7 +82,7 @@ async function failOrder(order, payment, { status = 'failed', note } = {}) {
 
 export async function initiateEsewa({ order, user }) {
   const settings = await getStoreSettings();
-  if (!settings.payments?.esewaEnabled) throw ApiError.unprocessable('eSewa is disabled');
+  if (settings.payments?.esewaEnabled === false) throw ApiError.unprocessable('eSewa is disabled');
   if (String(order.user) !== String(user._id) && user.role !== 'superadmin') {
     throw ApiError.forbidden();
   }
@@ -194,7 +194,7 @@ export async function handleEsewaReturn({ data, failure, oid }) {
 
 export async function initiateKhalti({ order, user }) {
   const settings = await getStoreSettings();
-  if (!settings.payments?.khaltiEnabled) throw ApiError.unprocessable('Khalti is disabled');
+  if (settings.payments?.khaltiEnabled === false) throw ApiError.unprocessable('Khalti is disabled');
   if (String(order.user) !== String(user._id) && user.role !== 'superadmin') {
     throw ApiError.forbidden();
   }

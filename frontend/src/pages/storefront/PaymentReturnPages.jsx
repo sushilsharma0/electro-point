@@ -25,6 +25,10 @@ function PaymentReturnPage({ gateway }) {
 
   useEffect(() => {
     let cancelled = false;
+    let attempts = 0;
+    let timer;
+    const maxAttempts = 15;
+
     async function run() {
       if (qStatus.includes('cancel')) {
         setState({ status: 'cancelled', order: null, error: null });
@@ -45,8 +49,15 @@ function PaymentReturnPage({ gateway }) {
           setState({ status: 'failed', order, error: null });
         } else if (['cancelled', 'canceled'].includes(pay)) {
           setState({ status: 'cancelled', order, error: null });
+        } else if (attempts >= maxAttempts) {
+          setState({
+            status: 'unknown',
+            order,
+            error: 'Payment is still pending. Open your orders in a minute to confirm status.',
+          });
         } else {
-          setTimeout(run, 2000);
+          attempts += 1;
+          timer = setTimeout(run, 2000);
         }
       } catch (err) {
         if (!cancelled) setState({ status: 'error', order: null, error: err.message });
@@ -55,6 +66,7 @@ function PaymentReturnPage({ gateway }) {
     run();
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
   }, [orderId, qStatus]);
 

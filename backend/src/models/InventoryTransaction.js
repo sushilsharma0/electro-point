@@ -6,7 +6,7 @@ const inventoryTransactionSchema = new mongoose.Schema(
     variantId: { type: mongoose.Schema.Types.ObjectId, default: null },
     type: {
       type: String,
-      enum: ['order', 'cancellation', 'manual', 'refund', 'restock', 'reserve', 'release'],
+      enum: ['order', 'cancellation', 'manual', 'refund', 'restock', 'reserve', 'release', 'correction'],
       required: true,
       index: true,
     },

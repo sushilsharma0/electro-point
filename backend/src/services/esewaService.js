@@ -4,15 +4,19 @@ import { paisaToNprString, nprStringToPaisa } from '../utils/money.js';
 import { ApiError } from '../utils/ApiError.js';
 
 export function esewaFormUrl() {
-  return env.ESEWA_ENV === 'production'
+  return isLiveEsewa()
     ? 'https://epay.esewa.com.np/api/epay/main/v2/form'
     : 'https://rc-epay.esewa.com.np/api/epay/main/v2/form';
 }
 
 export function esewaStatusUrl() {
-  return env.ESEWA_ENV === 'production'
+  return isLiveEsewa()
     ? 'https://epay.esewa.com.np/api/epay/transaction/status/'
     : 'https://uat.esewa.com.np/api/epay/transaction/status/';
+}
+
+function isLiveEsewa() {
+  return env.ESEWA_ENV === 'production' || env.ESEWA_ENV === 'live';
 }
 
 export function signedMessage({ totalAmount, transactionUuid, productCode }) {

@@ -45,7 +45,10 @@ export function AdminCategoriesPage() {
         className="space-y-3"
         onSubmit={(e) => {
           e.preventDefault();
-          create.mutate(form);
+          create.mutate({
+            ...form,
+            parent: form.parent || null,
+          });
         }}
       >
         <h2 className="font-medium">New category</h2>
@@ -259,7 +262,7 @@ export function AdminInventoryPage() {
         className="my-6 flex flex-wrap items-end gap-3"
         onSubmit={(e) => {
           e.preventDefault();
-          mut.mutate({ productId, qtyDelta: Number(qty), reason });
+          mut.mutate({ productId, qtyDelta: Number(qty), reason, type: reason === 'restock' || reason === 'refund' || reason === 'correction' ? reason : 'manual' });
         }}
       >
         <div>

@@ -27,7 +27,7 @@ export const inventoryAdjustSchema = body({
   variantId: objectId.optional().nullable(),
   qtyDelta: z.coerce.number().int().refine((n) => n !== 0, 'qtyDelta cannot be 0'),
   reason: z.string().trim().min(2).max(300),
-  type: z.enum(['manual', 'restock']).optional().default('manual'),
+  type: z.enum(['manual', 'restock', 'refund', 'correction', 'cancellation']).optional().default('manual'),
 });
 
 export const customerUpdateSchema = z.object({

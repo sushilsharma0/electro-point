@@ -95,8 +95,9 @@ export function CheckoutPage() {
     setPaying(true);
     try {
       const data = await checkoutApi.initiateEsewa(orderId);
-      const action = data.formAction || data.action || data.paymentUrl;
+      const action = data.formUrl || data.formAction || data.action || data.paymentUrl;
       const fields = data.fields || data.formFields || data;
+      if (!action) throw new Error('eSewa did not return a payment form URL');
       if (data.paymentUrl && !fields?.signature) {
         window.location.assign(data.paymentUrl);
         return;
@@ -104,7 +105,7 @@ export function CheckoutPage() {
       const form = document.createElement('form');
       form.method = 'POST';
       form.action = action;
-      const skip = new Set(['formAction', 'action', 'paymentUrl', 'fields', 'formFields', 'success']);
+      const skip = new Set(['formUrl', 'formAction', 'action', 'paymentUrl', 'fields', 'formFields', 'success', 'paymentId', 'orderId', 'orderNumber', 'amountPaisa']);
       Object.entries(fields).forEach(([k, v]) => {
         if (skip.has(k) || v == null || typeof v === 'object') return;
         const input = document.createElement('input');
