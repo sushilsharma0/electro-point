@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
+import { logger } from '../utils/logger.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
@@ -20,7 +21,7 @@ function secretOrDevFallback(name, bytes = 32) {
     throw new Error(`Missing required environment variable: ${name}`);
   }
   if (process.env.NODE_ENV !== 'test') {
-    console.warn(`[env] ${name} is empty; using a development-only fallback. Set it in .env before production.`);
+    logger.warn(`${name} is empty; using a development-only fallback. Set it in .env before production.`);
   }
   return crypto.randomBytes(bytes).toString('hex');
 }

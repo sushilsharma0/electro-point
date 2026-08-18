@@ -48,6 +48,17 @@ const timelineSchema = new mongoose.Schema(
   { _id: false },
 );
 
+const trackingSchema = new mongoose.Schema(
+  {
+    carrier: { type: String, default: '' },
+    trackingNumber: { type: String, default: '' },
+    trackingUrl: { type: String, default: '' },
+    estimatedDelivery: { type: Date, default: null },
+    lastLocation: { type: String, default: '' },
+  },
+  { _id: false },
+);
+
 const addressSnapshotSchema = new mongoose.Schema(
   {
     fullName: String,
@@ -79,6 +90,7 @@ const orderSchema = new mongoose.Schema(
     status: { type: String, enum: ORDER_STATUSES, default: 'pending', index: true },
     timeline: { type: [timelineSchema], default: [] },
     shippingMethod: { type: String, default: '' },
+    tracking: { type: trackingSchema, default: () => ({}) },
     payment: {
       method: { type: String, enum: ['esewa', 'khalti', 'cod', ''], default: '' },
       status: { type: String, default: 'pending' },

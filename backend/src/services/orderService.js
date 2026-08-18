@@ -189,32 +189,112 @@ export async function adminGet(id) {
   return order;
 }
 
-export async function updateStatus(order, status, note = '', adminUser) {
+function applyTracking(order, tracking = {}) {
+  const current = order.tracking?.toObject?.() || order.tracking || {};
+  const next = {
+    carrier: current.carrier || '',
+    trackingNumber: current.trackingNumber || '',
+    trackingUrl: current.trackingUrl || '',
+    estimatedDelivery: current.estimatedDelivery || null,
+    lastLocation: current.lastLocation || '',
+  };
+  if (tracking.carrier !== undefined) next.carrier = String(tracking.carrier || '').trim();
+  if (tracking.trackingNumber !== undefined) next.trackingNumber = String(tracking.trackingNumber || '').trim();
+  if (tracking.trackingUrl !== undefined) next.trackingUrl = String(tracking.trackingUrl || '').trim();
+  if (tracking.lastLocation !== undefined) next.lastLocation = String(tracking.lastLocation || '').trim();
+  if (tracking.estimatedDelivery !== undefined) {
+    next.estimatedDelivery = tracking.estimatedDelivery || null;
+  }
+  order.tracking = next;
+}
+
+export function publicTrackingView(order) {
+  const tracking = order.tracking?.toObject?.() || order.tracking || {};
+  return {
+    orderNumber: order.orderNumber,
+    status: order.status,
+    createdAt: order.createdAt,
+    shippingMethod: order.shippingMethod,
+    items: (order.items || []).map((item) => ({
+      name: item.name,
+      qty: item.qty,
+      sku: item.sku,
+    })),
+    totalPaisa: order.totalPaisa,
+    timeline: order.timeline || [],
+    tracking: {
+      carrier: tracking.carrier || '',
+      trackingNumber: tracking.trackingNumber || '',
+      trackingUrl: tracking.trackingUrl || '',
+      estimatedDelivery: tracking.estimatedDelivery || null,
+      lastLocation: tracking.lastLocation || '',
+    },
+    payment: {
+      method: order.payment?.method || '',
+      status: order.payment?.status || '',
+    },
+    address: {
+      city: order.address?.city || '',
+      state: order.address?.state || '',
+      country: order.address?.country || '',
+    },
+  };
+}
+
+export async function trackByNumber({ orderNumber, email }) {
+  const number = String(orderNumber || '').trim();
+  const mail = String(email || '').trim().toLowerCase();
+  if (!number || !mail) throw ApiError.badRequest('Order number and email are required');
+  const order = await Order.findOne({ orderNumber: number }).select(
+    'orderNumber email status createdAt shippingMethod items.name items.qty items.sku totalPaisa timeline tracking payment.method payment.status address.city address.state address.country',
+  );
+  if (!order || String(order.email || '').toLowerCase() !== mail) {
+    throw ApiError.notFound('Order not found');
+  }
+  return publicTrackingView(order);
+}
+
+export async function updateStatus(order, status, note = '', adminUser, tracking) {
   const current = order.status;
-  if (current === status) return order;
-  if (status === 'cancelled' && !['cancelled', 'refunded', 'delivered'].includes(current)) {
+  const nextStatus = status || current;
+  const statusChanged = Boolean(status) && status !== current;
+  const trackingProvided = tracking && typeof tracking === 'object' && Object.keys(tracking).length > 0;
+  if (!statusChanged && !trackingProvided && !note) return order;
+
+  if (statusChanged && nextStatus === 'cancelled' && !['cancelled', 'refunded', 'delivered'].includes(current)) {
     await inventory.releaseForOrder(order, { type: 'cancellation', reason: note || 'Admin cancelled' });
   }
-  if (status === 'refunded') {
+  if (statusChanged && nextStatus === 'refunded') {
     await inventory.releaseForOrder(order, { type: 'refund', reason: note || 'Refunded' });
     order.payment = { ...(order.payment?.toObject?.() || order.payment || {}), status: 'refunded' };
   }
   const pay = order.payment?.toObject?.() || order.payment || {};
-  if (pay.method === 'cod' && pay.status === 'pending' && (status === 'delivered' || status === 'paid')) {
+  if (
+    statusChanged &&
+    pay.method === 'cod' &&
+    pay.status === 'pending' &&
+    (nextStatus === 'delivered' || nextStatus === 'paid')
+  ) {
     order.payment = { ...pay, status: 'completed' };
   }
-  order.status = status;
+  if (trackingProvided) applyTracking(order, tracking);
+  order.status = nextStatus;
+  const timelineNote =
+    note ||
+    (statusChanged ? (adminUser ? 'Updated by admin' : '') : trackingProvided ? 'Shipment tracking updated' : '');
   order.timeline.push({
-    status,
+    status: nextStatus,
     at: new Date(),
-    note: note || (adminUser ? `Updated by admin` : ''),
+    note: timelineNote,
   });
   await order.save();
   await notify({
     user: order.user,
     type: 'order_status',
     title: `Order ${order.orderNumber}`,
-    body: `Status updated to ${status.replaceAll('_', ' ')}.`,
+    body: statusChanged
+      ? `Status updated to ${nextStatus.replaceAll('_', ' ')}.`
+      : 'Shipment tracking was updated.',
     link: `/account/orders/${order._id}`,
   });
   return order;

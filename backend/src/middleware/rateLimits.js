@@ -25,3 +25,9 @@ export const paymentLimiter = limiter({
   max: 20,
   message: 'Too many payment requests',
 });
+
+export const trackLimiter = limiter({
+  max: 20,
+  windowMs: 15 * 60 * 1000,
+  message: 'Too many tracking lookups. Try again shortly.',
+});

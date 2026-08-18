@@ -11,21 +11,8 @@ import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Seo } from '@/components/Seo';
 import { toast } from 'sonner';
-
-const STATUSES = [
-  'pending',
-  'payment_pending',
-  'paid',
-  'confirmed',
-  'processing',
-  'packed',
-  'shipped',
-  'out_for_delivery',
-  'delivered',
-  'cancelled',
-  'payment_failed',
-  'refunded',
-];
+import { OrderProgressBar, OrderStatusBadge, OrderTracker } from '@/components/order/OrderTracker';
+import { AdminShipmentForm, ORDER_STATUSES } from '@/components/order/AdminShipmentForm';
 
 export function AdminCategoriesPage() {
   const qc = useQueryClient();
@@ -122,9 +109,9 @@ export function AdminOrdersPage() {
       <h1 className="font-display text-2xl font-semibold">Orders</h1>
       <select className="my-4 h-10 rounded-md border border-border bg-surface px-3" value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Filter status">
         <option value="">All statuses</option>
-        {STATUSES.map((s) => (
+        {ORDER_STATUSES.map((s) => (
           <option key={s} value={s}>
-            {s}
+            {s.replaceAll('_', ' ')}
           </option>
         ))}
       </select>
@@ -133,6 +120,7 @@ export function AdminOrdersPage() {
           <TableRow>
             <TableHead>Number</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Progress</TableHead>
             <TableHead>Total</TableHead>
             <TableHead>Payment</TableHead>
           </TableRow>
@@ -145,7 +133,12 @@ export function AdminOrdersPage() {
                   {o.orderNumber}
                 </Link>
               </TableCell>
-              <TableCell>{o.status}</TableCell>
+              <TableCell>
+                <OrderStatusBadge status={o.status} />
+              </TableCell>
+              <TableCell className="min-w-[140px]">
+                <OrderProgressBar status={o.status} />
+              </TableCell>
               <TableCell className="tabular">{formatNpr(o.totalPaisa)}</TableCell>
               <TableCell>{o.payment?.method} {o.payment?.status}</TableCell>
             </TableRow>
@@ -158,38 +151,29 @@ export function AdminOrdersPage() {
 
 export function AdminOrderDetailPage() {
   const { id } = useParams();
-  const qc = useQueryClient();
   const q = useQuery({ queryKey: ['admin-order', id], queryFn: () => adminApi.order(id) });
   const order = q.data?.order || q.data;
-  const mut = useMutation({
-    mutationFn: (body) => adminApi.updateOrder(id, body),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin-order', id] });
-      toast.success('Order updated');
-    },
-  });
   if (q.isLoading || !order) return null;
+  const customer = order.user;
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <Seo title={order.orderNumber} noindex />
-      <h1 className="font-display text-2xl font-semibold">{order.orderNumber}</h1>
-      <label className="block max-w-xs text-sm">
-        Status
-        <select
-          className="mt-1 h-10 w-full rounded-md border border-border bg-surface px-3"
-          value={order.status}
-          onChange={(e) => mut.mutate({ status: e.target.value })}
-        >
-          {STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-      </label>
-      <ul className="text-sm">
+      <div>
+        <Link to="/admin/orders" className="text-sm text-accent transition-colors duration-200 hover:text-accent-hover">
+          All orders
+        </Link>
+        <h1 className="mt-2 font-display text-2xl font-semibold">{order.orderNumber}</h1>
+        {customer?.email ? (
+          <p className="mt-1 text-sm text-muted">
+            {customer.name || 'Customer'} · {customer.email}
+          </p>
+        ) : null}
+      </div>
+      <OrderTracker order={order} />
+      <AdminShipmentForm order={order} />
+      <ul className="border border-border text-sm">
         {(order.items || []).map((it, i) => (
-          <li key={i} className="flex justify-between border-b border-border py-2">
+          <li key={i} className="flex justify-between border-b border-border px-4 py-2 last:border-b-0">
             <span>
               {it.name} × {it.qty}
             </span>
@@ -198,6 +182,11 @@ export function AdminOrderDetailPage() {
         ))}
       </ul>
       <p className="font-semibold">Total {formatNpr(order.totalPaisa)}</p>
+      {order.address ? (
+        <p className="text-sm text-muted">
+          {order.address.fullName} · {order.address.line1}, {order.address.city}
+        </p>
+      ) : null}
     </div>
   );
 }

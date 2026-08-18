@@ -16,6 +16,7 @@ import { Seo } from '@/components/Seo';
 import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
 import { AccountSkeleton, AccountOrderSkeleton, AddressSkeleton, ProductGridSkeleton } from '@/components/ui/skeleton';
+import { OrderProgressBar, OrderStatusBadge, OrderTracker } from '@/components/order/OrderTracker';
 
 export function AccountHomePage() {
   const { user } = useAuth();
@@ -24,8 +25,11 @@ export function AccountHomePage() {
       <Seo title="Account" noindex />
       <p className="text-muted">Signed in as {user?.email}</p>
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
-        <Link className="border border-border p-4 hover:border-foreground/30" to="/account/orders">
+        <Link className="border border-border p-4 transition-colors duration-200 hover:border-foreground/30" to="/account/orders">
           Orders
+        </Link>
+        <Link className="border border-border p-4 transition-colors duration-200 hover:border-foreground/30" to="/track">
+          Track a shipment
         </Link>
         <Link className="border border-border p-4 hover:border-foreground/30" to="/account/wishlist">
           Wishlist
@@ -51,15 +55,30 @@ export function AccountOrdersPage() {
   return (
     <div>
       <Seo title="Orders" noindex />
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="font-display text-xl font-semibold">Orders</h2>
+          <p className="mt-1 text-sm text-muted">Live status from the warehouse — not a placeholder timeline.</p>
+        </div>
+        <Link to="/track" className="text-sm text-accent transition-colors duration-200 hover:text-accent-hover">
+          Track with order number
+        </Link>
+      </div>
       <ul className="divide-y divide-border border border-border">
         {orders.map((o) => (
           <li key={o._id}>
-            <Link to={`/account/orders/${o._id}`} className="flex items-center justify-between p-4 hover:bg-muted-bg">
-              <span>
-                <span className="block font-medium">{o.orderNumber}</span>
-                <span className="text-sm text-muted">{o.status}</span>
+            <Link
+              to={`/account/orders/${o._id}`}
+              className="flex flex-col gap-3 p-4 transition-colors duration-200 hover:bg-muted-bg sm:flex-row sm:items-center sm:justify-between"
+            >
+              <span className="min-w-0 flex-1">
+                <span className="flex flex-wrap items-center gap-2">
+                  <span className="font-medium">{o.orderNumber}</span>
+                  <OrderStatusBadge status={o.status} />
+                </span>
+                <OrderProgressBar status={o.status} className="mt-3 max-w-sm" />
               </span>
-              <span className="tabular">{formatNpr(o.totalPaisa)}</span>
+              <span className="tabular text-sm font-medium sm:text-base">{formatNpr(o.totalPaisa)}</span>
             </Link>
           </li>
         ))}
@@ -74,20 +93,18 @@ export function AccountOrderDetailPage() {
   const order = q.data?.order || q.data;
   if (q.isLoading || !order) return <AccountOrderSkeleton />;
   return (
-    <div>
+    <div className="space-y-8">
       <Seo title={`Order ${order.orderNumber}`} noindex />
-      <h2 className="font-display text-xl font-semibold">{order.orderNumber}</h2>
-      <p className="mt-1 text-sm text-muted">
-        {order.status}
-        {order.payment?.method === 'cod'
-          ? ` · Cash on delivery (${order.payment?.status || 'pending'})`
-          : order.payment?.method
-            ? ` · ${order.payment.method}`
-            : ''}
-      </p>
-      <ul className="mt-6 divide-y divide-border">
+      <div>
+        <Link to="/account/orders" className="text-sm text-accent transition-colors duration-200 hover:text-accent-hover">
+          All orders
+        </Link>
+        <h2 className="mt-2 font-display text-h2">{order.orderNumber}</h2>
+      </div>
+      <OrderTracker order={order} />
+      <ul className="divide-y divide-border border border-border">
         {(order.items || []).map((item, i) => (
-          <li key={i} className="flex justify-between py-3 text-sm">
+          <li key={i} className="flex justify-between px-4 py-3 text-sm">
             <span>
               {item.name} × {item.qty}
             </span>
@@ -95,16 +112,12 @@ export function AccountOrderDetailPage() {
           </li>
         ))}
       </ul>
-      <p className="mt-4 font-semibold">Total {formatNpr(order.totalPaisa)}</p>
-      {order.timeline?.length ? (
-        <ol className="mt-8 space-y-2 text-sm">
-          {order.timeline.map((t, i) => (
-            <li key={i}>
-              <span className="font-medium">{t.status}</span>{' '}
-              <span className="text-muted">{t.at ? new Date(t.at).toLocaleString() : ''}</span>
-            </li>
-          ))}
-        </ol>
+      <p className="font-semibold">Total {formatNpr(order.totalPaisa)}</p>
+      {order.address ? (
+        <p className="text-sm text-muted">
+          Delivering to {order.address.city}
+          {order.address.state ? `, ${order.address.state}` : ''}
+        </p>
       ) : null}
     </div>
   );

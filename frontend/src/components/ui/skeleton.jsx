@@ -210,16 +210,25 @@ export function AccountSkeleton() {
 
 export function AccountOrderSkeleton() {
   return (
-    <div className="space-y-4">
-      <Skeleton className="h-7 w-48" />
-      <Skeleton className="h-4 w-64" />
+    <div className="space-y-8">
+      <Skeleton className="h-8 w-48" />
+      <Skeleton className="h-10 w-64" />
+      <div className="hidden gap-2 md:flex">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Skeleton key={i} className="h-9 w-9 rounded-full" />
+        ))}
+      </div>
+      <div className="space-y-3 border border-border p-5">
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-4 w-40" />
+        <Skeleton className="h-4 w-56" />
+      </div>
       {Array.from({ length: 3 }).map((_, i) => (
         <div key={i} className="flex justify-between border-b border-border py-3">
           <Skeleton className="h-4 w-1/2" />
           <Skeleton className="h-4 w-20" />
         </div>
       ))}
-      <Skeleton className="h-6 w-32" />
     </div>
   );
 }
@@ -349,7 +358,7 @@ export function StorefrontRouteSkeleton({ pathname = '/' }) {
   ) {
     return <FormSkeleton />;
   }
-  if (pathname.startsWith('/payments/')) return <PaymentConfirmSkeleton />;
+  if (pathname.startsWith('/track')) return <FormSkeleton />;
   if (
     pathname.startsWith('/about') ||
     pathname.startsWith('/contact') ||

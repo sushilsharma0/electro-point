@@ -2,13 +2,14 @@ import { Router } from 'express';
 import * as orders from '../../controllers/orderController.js';
 import { requireAuth } from '../../middleware/auth.js';
 import { validate } from '../../middleware/validate.js';
-import { paymentLimiter } from '../../middleware/rateLimits.js';
+import { paymentLimiter, trackLimiter } from '../../middleware/rateLimits.js';
 import {
   checkoutQuoteSchema,
   createOrderSchema,
   initiatePaymentSchema,
   orderListQuerySchema,
   idParamSchema,
+  trackOrderSchema,
 } from '../../validators/order.js';
 
 const checkout = Router();
@@ -16,6 +17,7 @@ checkout.post('/quote', requireAuth, validate(checkoutQuoteSchema), orders.quote
 
 const orderRoutes = Router();
 orderRoutes.post('/', requireAuth, validate(createOrderSchema), orders.createOrder);
+orderRoutes.post('/track', trackLimiter, validate(trackOrderSchema), orders.trackOrder);
 orderRoutes.get('/', requireAuth, validate(orderListQuerySchema), orders.listOrders);
 orderRoutes.get('/:id', requireAuth, validate(idParamSchema), orders.getOrder);
 

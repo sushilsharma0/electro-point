@@ -33,26 +33,56 @@ export const orderListQuerySchema = z.object({
   params: z.record(z.any()).optional().default({}),
 });
 
+const trackingPayload = z
+  .object({
+    carrier: z.string().trim().max(80).optional(),
+    trackingNumber: z.string().trim().max(80).optional(),
+    trackingUrl: z
+      .string()
+      .trim()
+      .max(500)
+      .optional()
+      .refine((s) => !s || /^https?:\/\//i.test(s), 'Tracking URL must start with http:// or https://'),
+    estimatedDelivery: z.preprocess(
+      (v) => (v === '' || v == null ? null : v),
+      z.coerce.date().nullable().optional(),
+    ),
+    lastLocation: z.string().trim().max(200).optional(),
+  })
+  .optional();
+
 export const updateOrderStatusSchema = z.object({
-  body: z.object({
-    status: z.enum([
-      'pending',
-      'payment_pending',
-      'paid',
-      'confirmed',
-      'processing',
-      'packed',
-      'shipped',
-      'out_for_delivery',
-      'delivered',
-      'cancelled',
-      'payment_failed',
-      'refunded',
-    ]),
-    note: z.string().max(500).optional().default(''),
-  }),
+  body: z
+    .object({
+      status: z
+        .enum([
+          'pending',
+          'payment_pending',
+          'paid',
+          'confirmed',
+          'processing',
+          'packed',
+          'shipped',
+          'out_for_delivery',
+          'delivered',
+          'cancelled',
+          'payment_failed',
+          'refunded',
+        ])
+        .optional(),
+      note: z.string().max(500).optional().default(''),
+      tracking: trackingPayload,
+    })
+    .refine((payload) => Boolean(payload.status || payload.tracking || payload.note), {
+      message: 'Provide a status, tracking details, or a note',
+    }),
   params: z.object({ id: objectId }),
   query: z.record(z.any()).optional().default({}),
+});
+
+export const trackOrderSchema = body({
+  orderNumber: z.string().trim().min(6).max(40),
+  email: z.string().trim().email(),
 });
 
 export const idParamSchema = params({ id: objectId });

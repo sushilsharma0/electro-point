@@ -37,6 +37,10 @@ export const getOrder = asyncHandler(async (req, res) => {
   return ok(res, await orderService.getMine(req.user, req.params.id));
 });
 
+export const trackOrder = asyncHandler(async (req, res) => {
+  return ok(res, await orderService.trackByNumber({ orderNumber: req.body.orderNumber, email: req.body.email }));
+});
+
 export const initiateEsewa = asyncHandler(async (req, res) => {
   const order = await Order.findById(req.body.orderId);
   if (!order) throw ApiError.notFound('Order not found');

@@ -29,7 +29,10 @@ export const listOrders = asyncHandler(async (req, res) => ok(res, await orderSe
 export const getOrder = asyncHandler(async (req, res) => ok(res, await orderService.adminGet(req.params.id)));
 export const updateOrderStatus = asyncHandler(async (req, res) => {
   const order = await orderService.adminGet(req.params.id);
-  return ok(res, await orderService.updateStatus(order, req.body.status, req.body.note, req.user));
+  return ok(
+    res,
+    await orderService.updateStatus(order, req.body.status, req.body.note, req.user, req.body.tracking),
+  );
 });
 export const cancelOrder = asyncHandler(async (req, res) => {
   const order = await orderService.adminGet(req.params.id);

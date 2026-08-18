@@ -3,7 +3,6 @@ import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import morgan from 'morgan';
 import { env } from './config/env.js';
 import { stripMongoOperators } from './utils/sanitize.js';
 import { issueCsrf, requireCsrf } from './middleware/csrf.js';
@@ -11,6 +10,7 @@ import { generalLimiter } from './middleware/rateLimits.js';
 import { optionalAuth } from './middleware/auth.js';
 import { maintenanceGuard } from './middleware/maintenance.js';
 import { notFound, errorHandler } from './middleware/errorHandler.js';
+import { requestLogger } from './utils/logger.js';
 import v1 from './routes/v1/index.js';
 
 export function createApp() {
@@ -35,7 +35,7 @@ export function createApp() {
   app.use(express.urlencoded({ extended: false, limit: '1mb' }));
   app.use(cookieParser(env.COOKIE_SECRET));
   if (!env.isTest) {
-    app.use(morgan('tiny'));
+    app.use(requestLogger);
   }
   app.use(stripMongoOperators);
   app.use(issueCsrf);

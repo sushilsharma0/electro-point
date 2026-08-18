@@ -191,6 +191,7 @@ export const checkoutApi = {
   createOrder: (body) => api('/orders', { method: 'POST', body }),
   myOrders: (params) => api('/orders', { params }),
   order: (id) => api(`/orders/${id}`),
+  trackOrder: (body) => api('/orders/track', { method: 'POST', body }),
   initiateEsewa: (orderId) => api('/payments/esewa/initiate', { method: 'POST', body: { orderId } }),
   initiateKhalti: (orderId) => api('/payments/khalti/initiate', { method: 'POST', body: { orderId } }),
 };
@@ -218,7 +219,7 @@ export const adminApi = {
   deleteCategory: (id) => api(`/admin/categories/${id}`, { method: 'DELETE' }),
   orders: (params) => api('/admin/orders', { params }),
   order: (id) => api(`/admin/orders/${id}`),
-  updateOrder: (id, body) => api(`/admin/orders/${id}`, { method: 'PATCH', body }),
+  updateOrder: (id, body) => api(`/admin/orders/${id}/status`, { method: 'PATCH', body }),
   customers: (params) => api('/admin/customers', { params }),
   customer: (id) => api(`/admin/customers/${id}`),
   updateCustomer: (id, body) => api(`/admin/customers/${id}`, { method: 'PATCH', body }),

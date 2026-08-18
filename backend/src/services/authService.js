@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt';
 import { User } from '../models/User.js';
 import { env } from '../config/env.js';
 import { ApiError } from '../utils/ApiError.js';
+import { logger } from '../utils/logger.js';
 import {
   AUDIENCE,
   hashToken,
@@ -56,7 +57,7 @@ export async function register({ name, email, password, phone, guestId }) {
     try {
       await mergeGuestCart(user._id, guestId);
     } catch (err) {
-      console.warn('[auth] guest cart merge skipped:', err.message);
+      logger.warn('Guest cart merge skipped', err.message);
     }
   }
   return { user, accessToken, refreshToken };
@@ -79,7 +80,7 @@ export async function login({ email, password, guestId }) {
     try {
       await mergeGuestCart(user._id, guestId);
     } catch (err) {
-      console.warn('[auth] guest cart merge skipped:', err.message);
+      logger.warn('Guest cart merge skipped', err.message);
     }
   }
   return { user, accessToken, refreshToken };
@@ -136,7 +137,7 @@ export async function refresh(refreshToken, guestId, audience = AUDIENCE.STOREFR
     try {
       await mergeGuestCart(user._id, guestId);
     } catch (err) {
-      console.warn('[auth] guest cart merge skipped:', err.message);
+      logger.warn('Guest cart merge skipped', err.message);
     }
   }
   return { user, ...tokens };

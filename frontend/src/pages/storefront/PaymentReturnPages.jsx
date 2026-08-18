@@ -79,7 +79,7 @@ function PaymentReturnPage({ gateway }) {
             Order {state.order.orderNumber} · {formatNpr(state.order.totalPaisa)}
           </p>
           <Button asChild className="mt-8">
-            <Link to={`/account/orders/${state.order._id || state.order.id}`}>View order</Link>
+            <Link to={`/account/orders/${state.order._id || state.order.id}`}>Track order</Link>
           </Button>
         </>
       ) : null}

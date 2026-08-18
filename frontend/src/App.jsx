@@ -24,6 +24,7 @@ const ResetPasswordPage = lazy(() => import('@/pages/storefront/AuthPages').then
 const AboutPage = lazy(() => import('@/pages/storefront/ContentPages').then((m) => ({ default: m.AboutPage })));
 const ContactPage = lazy(() => import('@/pages/storefront/ContentPages').then((m) => ({ default: m.ContactPage })));
 const FaqPage = lazy(() => import('@/pages/storefront/ContentPages').then((m) => ({ default: m.FaqPage })));
+const TrackOrderPage = lazy(() => import('@/pages/storefront/TrackOrderPage').then((m) => ({ default: m.TrackOrderPage })));
 const TermsPage = lazy(() => import('@/pages/storefront/ContentPages').then((m) => ({ default: m.TermsPage })));
 const PrivacyPage = lazy(() => import('@/pages/storefront/ContentPages').then((m) => ({ default: m.PrivacyPage })));
 const EsewaReturnPage = lazy(() => import('@/pages/storefront/PaymentReturnPages').then((m) => ({ default: m.EsewaReturnPage })));
@@ -71,6 +72,7 @@ export default function App() {
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/faq" element={<FaqPage />} />
+          <Route path="/track" element={<TrackOrderPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/payments/esewa/return" element={<EsewaReturnPage />} />

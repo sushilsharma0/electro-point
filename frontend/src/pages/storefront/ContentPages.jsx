@@ -75,6 +75,7 @@ export function FaqPage() {
     { q: 'How are prices calculated?', a: 'The server computes totals from catalog prices, shipping, tax, and coupons. The browser never sets the payable amount.' },
     { q: 'Which payments are supported?', a: 'eSewa, Khalti, and cash on delivery. Online payments are verified with the official status APIs before an order is marked paid. COD is confirmed immediately and collected when the order is delivered.' },
     { q: 'Is every product 3D?', a: 'No. The admin sets visual mode per product: images, 360 spin, or a GLB/GLTF model.' },
+    { q: 'How do I track an order?', a: 'Open Track order in the footer, or Account → Orders. Enter the order number and the email used at checkout. Status, courier, and tracking number are written by staff when the parcel moves — they are not simulated.' },
   ];
   return (
     <Container className="max-w-2xl py-16">

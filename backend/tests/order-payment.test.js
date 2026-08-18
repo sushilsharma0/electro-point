@@ -1,5 +1,6 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
+import bcrypt from 'bcrypt';
 import { startApp, stopApp, client, createProduct } from './helpers.js';
 import { signEsewaPayload } from '../src/services/esewaService.js';
 
@@ -151,5 +152,72 @@ describe('orders, inventory, payments', { timeout: 120_000 }, () => {
     const fresh = await Product.findById(product._id);
     assert.equal(fresh.stock, 5);
     assert.equal(fresh.reservedStock, 0);
+  });
+
+  it('lets admin attach shipment tracking that customers and guests can read', async () => {
+    const { User } = await import('../src/models/User.js');
+    const { env } = await import('../src/config/env.js');
+    const product = await createProduct({ pricePaisa: 800000, stock: 4, reservedStock: 0 });
+    const buyer = client(app);
+    const { addressId, email } = await checkoutReady(buyer, product);
+    const placed = await buyer.post('/api/v1/orders').send({
+      addressId,
+      shippingMethod: 'standard',
+      paymentMethod: 'cod',
+    });
+    assert.equal(placed.status, 201, placed.body?.error?.message);
+    const orderId = placed.body.data._id;
+    const orderNumber = placed.body.data.orderNumber;
+
+    const adminEmail = `shipadmin${Date.now()}@electropoint.com`;
+    await User.create({
+      name: 'Ship Admin',
+      email: adminEmail,
+      passwordHash: await bcrypt.hash(env.ADMIN_PASSWORD, 12),
+      role: 'superadmin',
+      status: 'active',
+    });
+    const admin = client(app);
+    await admin.initCsrf();
+    const login = await admin.post('/api/v1/auth/admin/login').send({
+      email: adminEmail,
+      password: env.ADMIN_PASSWORD,
+    });
+    assert.equal(login.status, 200, login.body?.error?.message);
+
+    const eta = '2026-08-22';
+    const patched = await admin.patch(`/api/v1/admin/orders/${orderId}/status`).send({
+      status: 'shipped',
+      note: 'Handed to Pathao from Kathmandu hub',
+      tracking: {
+        carrier: 'Pathao',
+        trackingNumber: 'PTH-88221',
+        trackingUrl: 'https://pathao.com/track/PTH-88221',
+        estimatedDelivery: eta,
+        lastLocation: 'Kathmandu hub',
+      },
+    });
+    assert.equal(patched.status, 200, patched.body?.error?.message);
+    assert.equal(patched.body.data.status, 'shipped');
+    assert.equal(patched.body.data.tracking.trackingNumber, 'PTH-88221');
+    assert.equal(patched.body.data.tracking.carrier, 'Pathao');
+
+    const mine = await buyer.get(`/api/v1/orders/${orderId}`);
+    assert.equal(mine.status, 200);
+    assert.equal(mine.body.data.status, 'shipped');
+    assert.equal(mine.body.data.tracking.trackingNumber, 'PTH-88221');
+    assert.ok((mine.body.data.timeline || []).some((t) => t.note === 'Handed to Pathao from Kathmandu hub'));
+
+    const guest = client(app);
+    await guest.initCsrf();
+    const tracked = await guest.post('/api/v1/orders/track').send({ orderNumber, email });
+    assert.equal(tracked.status, 200, tracked.body?.error?.message);
+    assert.equal(tracked.body.data.orderNumber, orderNumber);
+    assert.equal(tracked.body.data.tracking.carrier, 'Pathao');
+    assert.equal(tracked.body.data.payment.method, 'cod');
+    assert.equal(tracked.body.data.user, undefined);
+
+    const miss = await guest.post('/api/v1/orders/track').send({ orderNumber, email: 'other@example.com' });
+    assert.equal(miss.status, 404);
   });
 });
