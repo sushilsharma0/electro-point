@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { GitCompare, Heart, Minus, Plus, Shield, Truck, Wallet } from 'lucide-react';
@@ -18,7 +18,7 @@ import { RatingStars } from '@/components/product/RatingStars';
 import { StockStatus } from '@/components/product/StockStatus';
 import { ProductCard } from '@/components/product/ProductCard';
 import { Container } from '@/components/layout/Container';
-import { Seo, breadcrumbJsonLd, productJsonLd } from '@/components/Seo';
+import { Seo, productJsonLd } from '@/components/Seo';
 import { useCart } from '@/hooks/useCart';
 import { useWishlist } from '@/hooks/useWishlist';
 import { useCompareStore } from '@/store/compare';
@@ -75,18 +75,6 @@ export function ProductPage() {
   const inStock = product ? availableStock(stockItem) > 0 : false;
   const wished = ids.has(String(id));
   const reviewList = listFrom(reviews.data);
-
-  const crumbs = useMemo(() => {
-    if (!product) return [];
-    return [
-      { name: 'Home', href: '/' },
-      { name: 'Shop', href: '/shop' },
-      product.category?.slug
-        ? { name: product.category.name, href: `/category/${product.category.slug}` }
-        : { name: 'Product' },
-      { name: product.name },
-    ];
-  }, [product]);
 
   if (query.isLoading) {
     return (
@@ -174,23 +162,9 @@ export function ProductPage() {
         canonical={`/product/${product.slug}`}
         image={productImage(product)}
         type="product"
-        jsonLd={[productJsonLd(product, `/product/${product.slug}`), breadcrumbJsonLd(crumbs)]}
+        jsonLd={productJsonLd(product, `/product/${product.slug}`)}
       />
-      <Container className="py-8 pb-28 lg:pb-16">
-        <nav className="mb-6 text-sm text-muted" aria-label="Breadcrumb">
-          {crumbs.map((c, i) => (
-            <span key={c.name}>
-              {i > 0 ? ' / ' : null}
-              {c.href ? (
-                <Link to={c.href} className="hover:text-accent">
-                  {c.name}
-                </Link>
-              ) : (
-                <span className="text-foreground">{c.name}</span>
-              )}
-            </span>
-          ))}
-        </nav>
+      <Container className="pt-4 pb-28 lg:pb-16">
         <div className="grid gap-10 lg:grid-cols-2">
           <div className="lg:sticky lg:top-24 lg:self-start">
             <ProductGallery

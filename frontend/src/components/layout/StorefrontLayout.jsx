@@ -6,6 +6,7 @@ import { Footer } from '@/components/layout/Footer';
 import { CompareBar } from '@/components/product/CompareBar';
 import { CartDrawer } from '@/components/cart/CartDrawer';
 import { StorefrontOutletFallback } from '@/components/loading/RouteFallback';
+import { StorefrontBreadcrumbs } from '@/components/layout/StorefrontBreadcrumbs';
 
 export function StorefrontLayout() {
   return (
@@ -17,6 +18,7 @@ export function StorefrontLayout() {
       <Navbar />
       <CartDrawer />
       <main id="main" className="flex-1">
+        <StorefrontBreadcrumbs />
         <Suspense fallback={<StorefrontOutletFallback />}>
           <Outlet />
         </Suspense>

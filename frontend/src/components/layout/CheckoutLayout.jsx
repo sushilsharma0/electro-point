@@ -4,6 +4,7 @@ import { Logo } from '@/components/layout/Logo';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { Lock } from 'lucide-react';
 import { StorefrontOutletFallback } from '@/components/loading/RouteFallback';
+import { StorefrontBreadcrumbs } from '@/components/layout/StorefrontBreadcrumbs';
 
 export function CheckoutLayout() {
   return (
@@ -25,6 +26,7 @@ export function CheckoutLayout() {
         </div>
       </header>
       <main id="main" className="flex-1 py-8">
+        <StorefrontBreadcrumbs className="pb-6" />
         <Suspense fallback={<StorefrontOutletFallback />}>
           <Outlet />
         </Suspense>

@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { ProductGrid } from '@/components/product/ProductGrid';
 import { Container } from '@/components/layout/Container';
-import { Seo, breadcrumbJsonLd } from '@/components/Seo';
+import { Seo } from '@/components/Seo';
 import { Search } from 'lucide-react';
 import { CatalogSkeleton } from '@/components/ui/skeleton';
 
@@ -39,7 +39,6 @@ export function CategoryPage() {
       canonical={`/category/${slug}`}
       categorySlug={slug}
       banner={category?.banner}
-      crumbs={[{ name: 'Home', href: '/' }, { name: 'Shop', href: '/shop' }, { name: category?.name || slug }]}
     />
   );
 }
@@ -58,7 +57,7 @@ export function SearchPage() {
   );
 }
 
-function CatalogView({ title, description, canonical, categorySlug, banner, crumbs, emptyTitle, emptyBody, emptyIcon }) {
+function CatalogView({ title, description, canonical, categorySlug, banner, emptyTitle, emptyBody, emptyIcon }) {
   const [sp, setSp] = useSearchParams();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const params = useMemo(() => {
@@ -120,7 +119,6 @@ function CatalogView({ title, description, canonical, categorySlug, banner, crum
         title={title}
         description={description}
         canonical={canonical}
-        jsonLd={crumbs ? breadcrumbJsonLd(crumbs) : undefined}
       />
       {banner ? (
         <div className="h-40 overflow-hidden border-b border-border md:h-56">
