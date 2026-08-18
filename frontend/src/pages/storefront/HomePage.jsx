@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowRight, BadgeCheck, Package, Shield, Truck } from 'lucide-react';
@@ -20,6 +20,7 @@ import { Container } from '@/components/layout/Container';
 import { toast } from 'sonner';
 import { WithTooltip } from '@/components/ui/tooltip';
 import { HomeSkeleton } from '@/components/ui/skeleton';
+import { HeroCarousel } from '@/components/home/HeroCarousel';
 
 const ProductViewer3D = lazy(() => import('@/components/three/ProductViewer3D'));
 
@@ -33,7 +34,7 @@ function useProductList(params, key) {
 export function HomePage() {
   const { settings } = useSettings();
   const reduced = useReducedMotion();
-  const featured = useProductList({ sort: 'featured', limit: 1 }, 'hero');
+  const featured = useProductList({ sort: 'featured', limit: 8 }, 'hero');
   const best = useProductList({ sort: 'bestseller', limit: 4 }, 'best');
   const arrivals = useProductList({ sort: 'newest', limit: 3 }, 'new');
   const sale = useProductList({ sort: 'sale', limit: 1 }, 'sale');
@@ -48,13 +49,16 @@ export function HomePage() {
   const brands = useQuery({ queryKey: ['brands'], queryFn: catalogApi.brands });
   const showcase = useProductList({ visualMode: 'model3d', limit: 1 }, '3d');
 
-  const hero = listFrom(featured.data)[0];
+  const featuredList = listFrom(featured.data);
+  const selectedHero = settings.heroProducts || [];
+  const heroSlides = selectedHero.length ? selectedHero : featuredList;
+  const showHero = settings.homepage?.hero !== false;
   const categories = listFrom(cats.data).filter((c) => c.showOnHomepage || c.isFeatured).slice(0, 4);
   const catTiles = categories.length ? categories : listFrom(cats.data).slice(0, 4);
   const bestList = listFrom(best.data);
   const newList = listFrom(arrivals.data);
   const saleProduct = listFrom(sale.data)[0];
-  const threeProduct = listFrom(showcase.data)[0] || hero;
+  const threeProduct = listFrom(showcase.data)[0] || heroSlides[0];
   const brandList = listFrom(brands.data);
   const reviewProducts = listFrom(reviews.data);
 
@@ -65,7 +69,7 @@ export function HomePage() {
     enabled: recentIds.length > 0,
   });
   const recent = listFrom(recentQ.data?.products || recentQ.data);
-  const homeLoading = featured.isLoading || cats.isLoading || best.isLoading;
+  const homeLoading = (!selectedHero.length && featured.isLoading) || cats.isLoading || best.isLoading;
 
   if (homeLoading) return <HomeSkeleton />;
 
@@ -77,7 +81,13 @@ export function HomePage() {
         canonical="/"
         jsonLd={orgJsonLd(settings)}
       />
-      <Hero product={hero} reduced={reduced} />
+      {showHero ? (
+        <HeroCarousel
+          products={heroSlides}
+          reduced={reduced}
+          autoplayMs={settings.homepage?.heroAutoplayMs || 6000}
+        />
+      ) : null}
       <CategoryTiles categories={catTiles} />
       {bestList.length ? <BestSellers products={bestList} /> : null}
       <NewArrivals products={newList} />
@@ -102,73 +112,6 @@ export function HomePage() {
       ) : null}
       <Newsletter />
     </>
-  );
-}
-
-function Hero({ product, reduced }) {
-  const wrapRef = useRef(null);
-  const [tilt, setTilt] = useState(0);
-
-  useEffect(() => {
-    if (reduced) return undefined;
-    const onScroll = () => {
-      const el = wrapRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const p = Math.min(1, Math.max(0, -rect.top / Math.max(rect.height, 1)));
-      setTilt(p * 0.35);
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, [reduced]);
-
-  const specs = (product?.specGroups?.[0]?.fields || []).slice(0, 4);
-  const img = product ? productImage(product) : PLACEHOLDER_IMAGES.laptop;
-
-  return (
-    <section ref={wrapRef} className="border-b border-border bg-surface">
-      <Container className="grid min-h-[calc(100vh-100px)] items-center gap-10 py-12 lg:grid-cols-12 lg:gap-12 lg:py-0">
-        <div className="order-2 lg:order-1 lg:col-span-5">
-          <p className="caption">Flagship</p>
-          <h1 className="mt-3 font-display text-display">
-            {product ? 'Precision in every watt' : 'Engineered for the work'}
-          </h1>
-          <p className="mt-4 max-w-md text-muted">
-            {product?.shortDescription || 'Specified hardware. Clear pricing in NPR. Official warranty on every device we sell.'}
-          </p>
-          {product ? <PriceDisplay className="mt-6" size="lg" pricePaisa={product.pricePaisa} salePricePaisa={product.salePricePaisa} /> : null}
-          {specs.length ? (
-            <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-2 spec-text">
-              {specs.map((f) => (
-                <div key={f.key || f.label}>
-                  <dt className="text-xs uppercase tracking-wide text-muted">{f.label}</dt>
-                  <dd>{f.value}</dd>
-                </div>
-              ))}
-            </dl>
-          ) : null}
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Button asChild size="lg">
-              <Link to={product ? `/product/${product.slug}` : '/shop'}>Shop flagship</Link>
-            </Button>
-            <Button asChild size="lg" variant="ghost">
-              <Link to="/shop">Explore categories</Link>
-            </Button>
-          </div>
-        </div>
-        <div className="order-1 lg:order-2 lg:col-span-7">
-          <div className="relative aspect-[4/3] product-stage lg:aspect-[5/4]" style={{ transform: reduced ? undefined : `perspective(1200px) rotateY(${tilt * 8}deg)` }}>
-            {product?.visualMode === 'model3d' && !reduced ? (
-              <Suspense fallback={<img src={img} alt={product?.name || 'Flagship device'} className="h-full w-full object-contain p-8" />}>
-                <ProductViewer3D product={product} className="h-full w-full" scrollInfluence />
-              </Suspense>
-            ) : (
-              <img src={img} alt={product?.name || 'Flagship laptop'} className="h-full w-full object-contain p-6 md:p-10" />
-            )}
-          </div>
-        </div>
-      </Container>
-    </section>
   );
 }
 

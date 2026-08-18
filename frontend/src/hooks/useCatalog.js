@@ -18,7 +18,13 @@ export function useSettings() {
 
   const raw = query.data?.settings || query.data || DEFAULT_SETTINGS;
   return {
-    settings: { ...DEFAULT_SETTINGS, ...raw, contact: { ...DEFAULT_SETTINGS.contact, ...raw.contact } },
+    settings: {
+      ...DEFAULT_SETTINGS,
+      ...raw,
+      contact: { ...DEFAULT_SETTINGS.contact, ...raw.contact },
+      homepage: { ...DEFAULT_SETTINGS.homepage, ...raw.homepage },
+      heroProducts: Array.isArray(raw.heroProducts) ? raw.heroProducts : DEFAULT_SETTINGS.heroProducts,
+    },
     query,
   };
 }

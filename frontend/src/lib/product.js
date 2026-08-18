@@ -98,4 +98,9 @@ export const DEFAULT_SETTINGS = {
     description: 'Professional electronics retailer in Nepal. Authentic devices, clear specs, eSewa and Khalti.',
   },
   footer: {},
+  homepage: {
+    hero: true,
+    heroAutoplayMs: 6000,
+  },
+  heroProducts: [],
 };

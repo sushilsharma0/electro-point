@@ -55,6 +55,8 @@ const storeSettingsSchema = new mongoose.Schema(
     },
     homepage: {
       hero: { type: Boolean, default: true },
+      heroProductIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
+      heroAutoplayMs: { type: Number, default: 6000, min: 2500, max: 30000 },
       featuredCategories: { type: Boolean, default: true },
       bestSellers: { type: Boolean, default: true },
       newArrivals: { type: Boolean, default: true },

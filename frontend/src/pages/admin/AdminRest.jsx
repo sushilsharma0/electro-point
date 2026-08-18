@@ -15,6 +15,7 @@ import { OrderProgressBar, OrderStatusBadge, OrderTracker } from '@/components/o
 import { OrderItemList } from '@/components/order/OrderItemList';
 import { ProductNameCell } from '@/components/product/ProductThumb';
 import { AdminShipmentForm, ORDER_STATUSES } from '@/components/order/AdminShipmentForm';
+import { HeroProductPicker } from '@/components/admin/HeroProductPicker';
 
 export function AdminCategoriesPage() {
   const qc = useQueryClient();
@@ -454,6 +455,7 @@ export function AdminPaymentsPage() {
 }
 
 export function AdminSettingsPage() {
+  const qc = useQueryClient();
   const q = useQuery({ queryKey: ['admin-settings'], queryFn: adminApi.settings });
   const [form, setForm] = useState(null);
   useEffect(() => {
@@ -461,13 +463,20 @@ export function AdminSettingsPage() {
   }, [q.data]);
   const mut = useMutation({
     mutationFn: adminApi.updateSettings,
-    onSuccess: () => toast.success('Settings saved'),
+    onSuccess: (data) => {
+      toast.success('Settings saved');
+      if (data) setForm(data.settings || data);
+      qc.invalidateQueries({ queryKey: ['admin-settings'] });
+      qc.invalidateQueries({ queryKey: ['settings'] });
+    },
     onError: (e) => toast.error(e.message),
   });
   if (!form) return null;
+  const heroIds = (form.homepage?.heroProductIds || []).map(String);
+  const autoplaySec = Math.round((form.homepage?.heroAutoplayMs || 6000) / 1000);
   return (
     <form
-      className="max-w-xl space-y-4"
+      className="max-w-3xl space-y-6"
       onSubmit={(e) => {
         e.preventDefault();
         mut.mutate(form);
@@ -500,6 +509,34 @@ export function AdminSettingsPage() {
           value={form.announcementBar?.text || ''}
           onChange={(e) => setForm({ ...form, announcementBar: { ...form.announcementBar, text: e.target.value, enabled: true } })}
         />
+      </div>
+      <HeroProductPicker
+        ids={heroIds}
+        onChange={(heroProductIds) => setForm({ ...form, homepage: { ...form.homepage, heroProductIds } })}
+      />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <Label htmlFor="hero-autoplay">Hero autoplay (seconds)</Label>
+          <Input
+            id="hero-autoplay"
+            className="mt-1"
+            type="number"
+            min={3}
+            max={30}
+            value={autoplaySec}
+            onChange={(e) => {
+              const sec = Math.min(30, Math.max(3, Number(e.target.value) || 6));
+              setForm({ ...form, homepage: { ...form.homepage, heroAutoplayMs: sec * 1000 } });
+            }}
+          />
+        </div>
+        <label className="flex items-end justify-between pb-2 text-sm">
+          Show homepage hero
+          <Switch
+            checked={form.homepage?.hero !== false}
+            onCheckedChange={(v) => setForm({ ...form, homepage: { ...form.homepage, hero: v } })}
+          />
+        </label>
       </div>
       <label className="flex items-center justify-between text-sm">
         eSewa enabled

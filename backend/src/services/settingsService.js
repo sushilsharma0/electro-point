@@ -1,7 +1,23 @@
+import mongoose from 'mongoose';
 import { getStoreSettings } from './pricingService.js';
+import { Product } from '../models/Product.js';
+
+const HERO_SELECT = 'name slug brand shortDescription pricePaisa salePricePaisa images thumbnail specGroups';
+
+async function hydrateHeroProducts(ids) {
+  const ordered = [...new Set((ids || []).map(String).filter((id) => mongoose.isValidObjectId(id)))].slice(0, 8);
+  if (!ordered.length) return [];
+  const products = await Product.find({ _id: { $in: ordered }, status: 'published' })
+    .select(HERO_SELECT)
+    .lean();
+  const map = new Map(products.map((p) => [String(p._id), p]));
+  return ordered.map((id) => map.get(id)).filter(Boolean);
+}
 
 export async function publicSettings() {
   const s = await getStoreSettings();
+  const homepage = s.homepage?.toObject?.() || s.homepage || {};
+  const heroProducts = await hydrateHeroProducts(homepage.heroProductIds);
   return {
     storeName: s.storeName,
     logo: s.logo,
@@ -17,7 +33,18 @@ export async function publicSettings() {
       codEnabled: s.payments?.codEnabled !== false,
     },
     seo: s.seo,
-    homepage: s.homepage,
+    homepage: {
+      hero: homepage.hero !== false,
+      featuredCategories: homepage.featuredCategories !== false,
+      bestSellers: homepage.bestSellers !== false,
+      newArrivals: homepage.newArrivals !== false,
+      showcase3d: homepage.showcase3d !== false,
+      specialOffers: homepage.specialOffers !== false,
+      brands: homepage.brands !== false,
+      reviews: homepage.reviews !== false,
+      heroAutoplayMs: homepage.heroAutoplayMs || 6000,
+    },
+    heroProducts,
     footer: s.footer,
     announcementBar: s.announcementBar,
     maintenanceMode: s.maintenanceMode,
@@ -27,6 +54,9 @@ export async function publicSettings() {
 export async function adminGet() {
   const s = await getStoreSettings();
   const json = s.toObject();
+  if (json.homepage?.heroProductIds) {
+    json.homepage.heroProductIds = json.homepage.heroProductIds.map(String);
+  }
   return json;
 }
 
@@ -49,7 +79,17 @@ export async function adminUpdate(payload) {
       ...(esewaProductCode != null ? { esewaProductCode } : {}),
     };
   }
+  if (payload.homepage) {
+    const current = s.homepage?.toObject?.() || s.homepage || {};
+    const next = { ...current, ...payload.homepage };
+    if (Array.isArray(next.heroProductIds)) {
+      next.heroProductIds = [...new Set(next.heroProductIds.map(String))].slice(0, 8);
+    }
+    payload.homepage = next;
+  }
+  delete payload.heroProducts;
   Object.assign(s, payload);
+  if (payload.homepage) s.markModified('homepage');
   await s.save();
   return adminGet();
 }

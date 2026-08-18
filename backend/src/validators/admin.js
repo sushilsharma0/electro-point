@@ -97,7 +97,20 @@ export const settingsUpdateSchema = body({
       ogImage: z.string().optional(),
     })
     .optional(),
-  homepage: z.record(z.boolean()).optional(),
+  homepage: z
+    .object({
+      hero: z.boolean().optional(),
+      featuredCategories: z.boolean().optional(),
+      bestSellers: z.boolean().optional(),
+      newArrivals: z.boolean().optional(),
+      showcase3d: z.boolean().optional(),
+      specialOffers: z.boolean().optional(),
+      brands: z.boolean().optional(),
+      reviews: z.boolean().optional(),
+      heroProductIds: z.array(objectId).max(8).optional(),
+      heroAutoplayMs: z.coerce.number().int().min(2500).max(30000).optional(),
+    })
+    .optional(),
   footer: z
     .object({
       html: z.string().max(20000).optional(),
