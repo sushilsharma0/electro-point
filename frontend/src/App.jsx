@@ -8,6 +8,7 @@ import { AccountLayout } from '@/components/layout/AccountLayout';
 import { RequireAuth, RequireAdmin } from '@/components/guards';
 import { NotFoundPage, ServerErrorPage } from '@/pages/errors/ErrorPages';
 import { AppRouteFallback } from '@/components/loading/RouteFallback';
+import { ScrollToTop } from '@/components/ScrollToTop';
 
 const HomePage = lazy(() => import('@/pages/storefront/HomePage').then((m) => ({ default: m.HomePage })));
 const ShopPage = lazy(() => import('@/pages/storefront/CatalogPages').then((m) => ({ default: m.ShopPage })));
@@ -56,6 +57,7 @@ const AdminLoginPage = lazy(() => import('@/pages/admin/AdminLoginPage').then((m
 export default function App() {
   return (
     <Suspense fallback={<AppRouteFallback />}>
+      <ScrollToTop />
       <Routes>
         <Route element={<StorefrontLayout />}>
           <Route path="/" element={<HomePage />} />
