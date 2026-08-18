@@ -18,6 +18,7 @@ import {
 import { Logo } from '@/components/layout/Logo';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { Button } from '@/components/ui/button';
+import { WithTooltip } from '@/components/ui/tooltip';
 import { useAdminAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/cn';
 import { AdminSpinnerScreen } from '@/components/ui/spinner';
@@ -59,7 +60,9 @@ export function AdminShell({ children, user, onLogout }) {
                 )
               }
             >
-              <Icon className="h-4 w-4" />
+              <WithTooltip label={label} side="right">
+                <Icon className="h-4 w-4" />
+              </WithTooltip>
               {label}
             </NavLink>
           ))}

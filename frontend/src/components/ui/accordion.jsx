@@ -1,6 +1,7 @@
 import * as AccordionPrimitive from '@radix-ui/react-accordion';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import { WithTooltip } from '@/components/ui/tooltip';
 
 export const Accordion = AccordionPrimitive.Root;
 
@@ -13,13 +14,15 @@ export function AccordionTrigger({ className, children, ...props }) {
     <AccordionPrimitive.Header className="flex">
       <AccordionPrimitive.Trigger
         className={cn(
-          'flex flex-1 items-center justify-between py-4 text-left text-sm font-medium cursor-pointer transition-colors duration-200 hover:text-accent [&[data-state=open]>svg]:rotate-180',
+          'flex flex-1 items-center justify-between py-4 text-left text-sm font-medium cursor-pointer transition-colors duration-200 hover:text-accent [&[data-state=open]_svg]:rotate-180',
           className,
         )}
         {...props}
       >
         {children}
-        <ChevronDown className="h-4 w-4 shrink-0 text-muted transition-transform duration-200" />
+        <WithTooltip label="Expand">
+          <ChevronDown className="h-4 w-4 shrink-0 text-muted transition-transform duration-200" />
+        </WithTooltip>
       </AccordionPrimitive.Trigger>
     </AccordionPrimitive.Header>
   );

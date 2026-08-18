@@ -18,6 +18,7 @@ import { PriceDisplay } from '@/components/product/PriceDisplay';
 import { Seo, orgJsonLd } from '@/components/Seo';
 import { Container } from '@/components/layout/Container';
 import { toast } from 'sonner';
+import { WithTooltip } from '@/components/ui/tooltip';
 import { HomeSkeleton } from '@/components/ui/skeleton';
 
 const ProductViewer3D = lazy(() => import('@/components/three/ProductViewer3D'));
@@ -284,7 +285,9 @@ function Showroom({ product, reduced }) {
           <Button asChild className="mt-8 bg-[#F2F4F7] text-[#0B0D10] hover:bg-white">
             <Link to={`/product/${product.slug}`}>
               Inspect {product.name}
-              <ArrowRight className="h-4 w-4" />
+              <WithTooltip label="Open product">
+                <ArrowRight className="h-4 w-4" />
+              </WithTooltip>
             </Link>
           </Button>
         </div>
@@ -374,7 +377,9 @@ function TrustFacts() {
       <Container className="grid gap-0 sm:grid-cols-2 lg:grid-cols-4">
         {items.map(({ icon: Icon, title, body }, i) => (
           <div key={title} className={`px-0 py-6 sm:px-6 ${i ? 'lg:border-l lg:border-border' : ''}`}>
-            <Icon className="h-5 w-5 text-foreground" aria-hidden />
+            <WithTooltip label={title}>
+              <Icon className="h-5 w-5 text-foreground" />
+            </WithTooltip>
             <h3 className="mt-4 font-display text-base font-semibold">{title}</h3>
             <p className="mt-2 text-sm text-muted">{body}</p>
           </div>

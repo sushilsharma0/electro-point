@@ -3,6 +3,7 @@ import { Canvas } from '@react-three/fiber';
 import { Environment, OrbitControls, useGLTF, ContactShadows } from '@react-three/drei';
 import { Button } from '@/components/ui/button';
 import { RotateCcw } from 'lucide-react';
+import { WithTooltip } from '@/components/ui/tooltip';
 import { useReducedMotion } from '@/hooks/useMedia';
 import { productImage } from '@/lib/product';
 
@@ -135,7 +136,9 @@ export default function ProductViewer3D({ product, className, scrollInfluence = 
           className="absolute bottom-3 right-3"
           onClick={() => controlsRef.current?.reset?.()}
         >
-          <RotateCcw className="h-3.5 w-3.5" />
+          <WithTooltip label="Reset view">
+            <RotateCcw className="h-3.5 w-3.5" />
+          </WithTooltip>
           Reset
         </Button>
       </div>

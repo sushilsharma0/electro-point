@@ -8,6 +8,7 @@ import { getRecentSearches, pushRecentSearch } from '@/lib/storage';
 import { Input } from '@/components/ui/input';
 import { formatNpr } from '@/lib/money';
 import { ProductThumb } from '@/components/product/ProductThumb';
+import { WithTooltip } from '@/components/ui/tooltip';
 
 export function SearchBox({ compact = false, onNavigate }) {
   const [q, setQ] = useState('');
@@ -48,7 +49,9 @@ export function SearchBox({ compact = false, onNavigate }) {
         Search products
       </label>
       <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+        <WithTooltip label="Search">
+          <Search className="pointer-events-auto absolute left-3 top-1/2 z-[1] h-4 w-4 -translate-y-1/2 text-muted" />
+        </WithTooltip>
         <Input
           id={compact ? 'mobile-search' : 'nav-search'}
           value={q}

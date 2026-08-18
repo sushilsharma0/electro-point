@@ -1,6 +1,7 @@
 import * as SelectPrimitive from '@radix-ui/react-select';
 import { Check, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import { WithTooltip } from '@/components/ui/tooltip';
 
 export const Select = SelectPrimitive.Root;
 export const SelectValue = SelectPrimitive.Value;
@@ -16,7 +17,11 @@ export function SelectTrigger({ className, children, ...props }) {
     >
       {children}
       <SelectPrimitive.Icon asChild>
-        <ChevronDown className="h-4 w-4 text-muted" />
+        <span className="inline-flex">
+          <WithTooltip label="Open">
+            <ChevronDown className="h-4 w-4 text-muted" />
+          </WithTooltip>
+        </span>
       </SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>
   );
@@ -46,7 +51,9 @@ export function SelectItem({ className, children, ...props }) {
     >
       <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
         <SelectPrimitive.ItemIndicator>
+        <WithTooltip label="Selected">
           <Check className="h-4 w-4" />
+        </WithTooltip>
         </SelectPrimitive.ItemIndicator>
       </span>
       <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>

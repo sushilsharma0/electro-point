@@ -1,4 +1,5 @@
 import { cn } from '@/lib/cn';
+import { WithTooltip } from '@/components/ui/tooltip';
 
 function uniqueOptions(variants, key) {
   const vals = [];
@@ -36,18 +37,18 @@ export function VariantPicker({ variants = [], selectedId, onChange }) {
             {isColor ? (
               <div className="flex flex-wrap gap-2">
                 {values.map((val) => (
-                  <button
-                    key={val}
-                    type="button"
-                    aria-label={val}
-                    title={val}
-                    onClick={() => pick(key, val)}
-                    className={cn(
-                      'h-6 w-6 cursor-pointer rounded-full border',
-                      selected?.options?.[key] === val ? 'border-accent ring-2 ring-accent ring-offset-2 ring-offset-background' : 'border-border',
-                    )}
-                    style={{ background: guessColor(val) }}
-                  />
+                  <WithTooltip key={val} label={val}>
+                    <button
+                      type="button"
+                      aria-label={val}
+                      onClick={() => pick(key, val)}
+                      className={cn(
+                        'h-6 w-6 cursor-pointer rounded-full border',
+                        selected?.options?.[key] === val ? 'border-accent ring-2 ring-accent ring-offset-2 ring-offset-background' : 'border-border',
+                      )}
+                      style={{ background: guessColor(val) }}
+                    />
+                  </WithTooltip>
                 ))}
               </div>
             ) : (

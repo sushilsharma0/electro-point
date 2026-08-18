@@ -27,6 +27,7 @@ import { toast } from 'sonner';
 import { NetworkErrorPage, NotFoundPage } from '@/pages/errors/ErrorPages';
 import { RecentlyViewed } from '@/components/product/RecentlyViewed';
 import { cn } from '@/lib/cn';
+import { WithTooltip } from '@/components/ui/tooltip';
 
 const ProductViewer3D = lazy(() => import('@/components/three/ProductViewer3D'));
 
@@ -111,11 +112,11 @@ export function ProductPage() {
           Quantity
         </Label>
         <div className="inline-flex items-center border border-border">
-          <Button type="button" variant="ghost" size="icon" aria-label="Decrease" onClick={() => setQty((q) => Math.max(1, q - 1))}>
+          <Button type="button" variant="ghost" size="icon" aria-label="Decrease quantity" onClick={() => setQty((q) => Math.max(1, q - 1))}>
             <Minus className="h-4 w-4" />
           </Button>
           <Input id="qty" className="h-10 w-12 border-0 text-center" value={qty} onChange={(e) => setQty(Math.max(1, Number(e.target.value) || 1))} />
-          <Button type="button" variant="ghost" size="icon" aria-label="Increase" onClick={() => setQty((q) => q + 1)}>
+          <Button type="button" variant="ghost" size="icon" aria-label="Increase quantity" onClick={() => setQty((q) => q + 1)}>
             <Plus className="h-4 w-4" />
           </Button>
         </div>
@@ -142,13 +143,22 @@ export function ProductPage() {
       </div>
       <ul className="mt-8 space-y-3 text-sm text-muted">
         <li className="flex gap-2">
-          <Shield className="mt-0.5 h-4 w-4 text-foreground" /> {product.warranty || 'Official manufacturer warranty'}
+          <WithTooltip label="Warranty">
+            <Shield className="mt-0.5 h-4 w-4 shrink-0 text-foreground" />
+          </WithTooltip>
+          {product.warranty || 'Official manufacturer warranty'}
         </li>
         <li className="flex gap-2">
-          <Truck className="mt-0.5 h-4 w-4 text-foreground" /> Delivery from store settings — quoted at checkout
+          <WithTooltip label="Delivery">
+            <Truck className="mt-0.5 h-4 w-4 shrink-0 text-foreground" />
+          </WithTooltip>
+          Delivery from store settings — quoted at checkout
         </li>
         <li className="flex gap-2">
-          <Wallet className="mt-0.5 h-4 w-4 text-foreground" /> eSewa and Khalti. Totals calculated on the server.
+          <WithTooltip label="Payment">
+            <Wallet className="mt-0.5 h-4 w-4 shrink-0 text-foreground" />
+          </WithTooltip>
+          eSewa and Khalti. Totals calculated on the server.
         </li>
       </ul>
     </>

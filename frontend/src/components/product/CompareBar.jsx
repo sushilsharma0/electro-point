@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { catalogApi, listFrom } from '@/lib/api';
 import { ProductThumb } from '@/components/product/ProductThumb';
+import { WithTooltip } from '@/components/ui/tooltip';
 
 export function CompareBar() {
   const ids = useCompareStore((s) => s.ids);
@@ -28,9 +29,11 @@ export function CompareBar() {
           <div key={p._id || p.slug} className="flex items-center gap-2 border border-border px-2 py-1 text-sm">
             <ProductThumb product={p} size="xs" />
             <span className="max-w-[10rem] truncate">{p.name}</span>
-            <button type="button" aria-label={`Remove ${p.name}`} className="cursor-pointer text-muted hover:text-foreground" onClick={() => remove(p._id || p.id)}>
-              <X className="h-3.5 w-3.5" />
-            </button>
+            <WithTooltip label={`Remove ${p.name}`}>
+              <button type="button" aria-label={`Remove ${p.name}`} className="cursor-pointer text-muted hover:text-foreground" onClick={() => remove(p._id || p.id)}>
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </WithTooltip>
           </div>
         ))}
         <div className="ml-auto flex shrink-0 gap-2">

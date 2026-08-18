@@ -10,6 +10,7 @@ import { useCart } from '@/hooks/useCart';
 import { useWishlist } from '@/hooks/useWishlist';
 import { idOf, productBadge, productHoverImage, productImage, availableStock } from '@/lib/product';
 import { cn } from '@/lib/cn';
+import { WithTooltip } from '@/components/ui/tooltip';
 
 export function ProductCard({ product, onQuickView }) {
   const [hover, setHover] = useState(false);
@@ -63,18 +64,20 @@ export function ProductCard({ product, onQuickView }) {
             {badge.label}
           </Badge>
         ) : null}
-        <button
-          type="button"
-          className={cn('absolute right-2 top-2 rounded-md p-2 cursor-pointer transition-colors duration-200', wished ? 'text-danger' : 'text-muted hover:text-foreground')}
-          aria-label={wished ? 'Remove from wishlist' : 'Add to wishlist'}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            toggle(id);
-          }}
-        >
-          <Heart className={cn('h-4 w-4', wished && 'fill-current')} />
-        </button>
+        <WithTooltip label={wished ? 'Remove from wishlist' : 'Add to wishlist'}>
+          <button
+            type="button"
+            className={cn('absolute right-2 top-2 rounded-md p-2 cursor-pointer transition-colors duration-200', wished ? 'text-danger' : 'text-muted hover:text-foreground')}
+            aria-label={wished ? 'Remove from wishlist' : 'Add to wishlist'}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              toggle(id);
+            }}
+          >
+            <Heart className={cn('h-4 w-4', wished && 'fill-current')} />
+          </button>
+        </WithTooltip>
       </Link>
       <div className="flex flex-1 flex-col gap-1 p-3">
         <p className="caption">{product.brand}</p>
@@ -86,7 +89,15 @@ export function ProductCard({ product, onQuickView }) {
         <StockStatus item={product} className="text-xs" />
         <div className="mt-auto flex gap-2 pt-2 opacity-100 md:opacity-0 md:transition-opacity md:duration-200 md:group-hover:opacity-100">
           <Button type="button" size="sm" className="flex-1" disabled={!inStock || add.isPending} onClick={addToCart}>
-            {added ? <Check /> : <ShoppingBag />}
+            {added ? (
+              <WithTooltip label="Added">
+                <Check />
+              </WithTooltip>
+            ) : (
+              <WithTooltip label="Add to cart">
+                <ShoppingBag />
+              </WithTooltip>
+            )}
             {added ? 'Added' : 'Add'}
           </Button>
           <Button

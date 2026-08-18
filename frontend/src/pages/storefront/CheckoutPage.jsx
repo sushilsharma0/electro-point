@@ -21,6 +21,7 @@ import { cn } from '@/lib/cn';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Banknote } from 'lucide-react';
 import { CheckoutSkeleton } from '@/components/ui/skeleton';
+import { WithTooltip } from '@/components/ui/tooltip';
 
 const STEPS = ['Info', 'Address', 'Shipping', 'Summary', 'Payment', 'Done'];
 
@@ -251,7 +252,9 @@ export function CheckoutPage() {
               ) : null}
               {settings.payments?.codEnabled !== false ? (
                 <Button type="button" size="lg" variant="outline" disabled={paying} onClick={() => placeOrder('cod')}>
-                  <Banknote aria-hidden="true" />
+                  <WithTooltip label="Cash on delivery">
+                    <Banknote />
+                  </WithTooltip>
                   Cash on delivery
                 </Button>
               ) : null}

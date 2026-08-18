@@ -11,6 +11,7 @@ import { Container } from '@/components/layout/Container';
 import { OrderTracker } from '@/components/order/OrderTracker';
 import { OrderItemList } from '@/components/order/OrderItemList';
 import { Seo } from '@/components/Seo';
+import { WithTooltip } from '@/components/ui/tooltip';
 
 export function TrackOrderPage() {
   const [sp] = useSearchParams();
@@ -90,7 +91,9 @@ export function TrackOrderPage() {
         </div>
       ) : lookUp.isIdle ? (
         <div className="mt-16 text-center text-muted">
-          <PackageSearch className="mx-auto h-8 w-8" aria-hidden />
+          <WithTooltip label="Track order">
+            <PackageSearch className="mx-auto h-8 w-8" />
+          </WithTooltip>
           <p className="mt-3 text-sm">No lookup yet. Tracking appears here after a match.</p>
         </div>
       ) : null}

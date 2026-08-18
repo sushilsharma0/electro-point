@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { cn } from '@/lib/cn';
 import { productImage } from '@/lib/product';
+import { WithTooltip } from '@/components/ui/tooltip';
 
 export function ProductGallery({ product, visualSlot }) {
   const images = (product.images || []).map((i) => i.url || i).filter(Boolean);
@@ -17,18 +18,20 @@ export function ProductGallery({ product, visualSlot }) {
         <ul className="flex gap-2 overflow-x-auto">
           {images.map((src, i) => (
             <li key={src + i}>
-              <button
-                type="button"
-                onClick={() => setActive(i)}
-                className={cn(
-                  'h-16 w-16 cursor-pointer overflow-hidden rounded-sm border product-stage',
-                  i === active ? 'border-accent' : 'border-border',
-                )}
-                aria-label={`View image ${i + 1}`}
-                aria-current={i === active}
-              >
-                <img src={src} alt="" className="h-full w-full object-contain p-1" />
-              </button>
+              <WithTooltip label={`View image ${i + 1}`}>
+                <button
+                  type="button"
+                  onClick={() => setActive(i)}
+                  className={cn(
+                    'h-16 w-16 cursor-pointer overflow-hidden rounded-sm border product-stage',
+                    i === active ? 'border-accent' : 'border-border',
+                  )}
+                  aria-label={`View image ${i + 1}`}
+                  aria-current={i === active}
+                >
+                  <img src={src} alt="" className="h-full w-full object-contain p-1" />
+                </button>
+              </WithTooltip>
             </li>
           ))}
         </ul>

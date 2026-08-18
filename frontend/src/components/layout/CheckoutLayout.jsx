@@ -5,6 +5,7 @@ import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { Lock } from 'lucide-react';
 import { StorefrontOutletFallback } from '@/components/loading/RouteFallback';
 import { StorefrontBreadcrumbs } from '@/components/layout/StorefrontBreadcrumbs';
+import { WithTooltip } from '@/components/ui/tooltip';
 
 export function CheckoutLayout() {
   return (
@@ -16,7 +17,9 @@ export function CheckoutLayout() {
         <div className="mx-auto flex h-14 max-w-store items-center justify-between px-4 sm:px-6">
           <Logo />
           <div className="flex items-center gap-3 text-sm text-muted">
-            <Lock className="h-3.5 w-3.5" aria-hidden />
+            <WithTooltip label="Secure checkout">
+              <Lock className="h-3.5 w-3.5" />
+            </WithTooltip>
             Secure checkout
             <ThemeToggle />
             <Link to="/cart" className="text-accent hover:underline">

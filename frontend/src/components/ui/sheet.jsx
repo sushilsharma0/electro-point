@@ -1,6 +1,7 @@
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import { WithTooltip } from '@/components/ui/tooltip';
 
 export const Sheet = DialogPrimitive.Root;
 export const SheetTrigger = DialogPrimitive.Trigger;
@@ -21,12 +22,14 @@ export function SheetContent({ className, side = 'right', children, title = 'Pan
         {...props}
       >
         <DialogPrimitive.Title className="sr-only">{title}</DialogPrimitive.Title>
-        <DialogPrimitive.Close
-          className="absolute right-4 top-4 rounded-md p-1 text-muted hover:text-foreground cursor-pointer"
-          aria-label="Close"
-        >
-          <X className="h-4 w-4" />
-        </DialogPrimitive.Close>
+        <WithTooltip label="Close">
+          <DialogPrimitive.Close
+            className="absolute right-4 top-4 rounded-md p-1 text-muted hover:text-foreground cursor-pointer"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" />
+          </DialogPrimitive.Close>
+        </WithTooltip>
         {children}
       </DialogPrimitive.Content>
     </DialogPrimitive.Portal>

@@ -14,6 +14,7 @@ import { Container } from '@/components/layout/Container';
 import { Seo } from '@/components/Seo';
 import { Search } from 'lucide-react';
 import { CatalogSkeleton } from '@/components/ui/skeleton';
+import { WithTooltip } from '@/components/ui/tooltip';
 
 const SORTS = [
   { value: 'newest', label: 'Newest' },
@@ -133,7 +134,9 @@ function CatalogView({ title, description, canonical, categorySlug, banner, empt
           </div>
           <div className="flex items-center gap-2">
             <Button type="button" variant="outline" className="lg:hidden" onClick={() => setFiltersOpen(true)}>
-              <SlidersHorizontal className="h-4 w-4" />
+              <WithTooltip label="Filters">
+                <SlidersHorizontal className="h-4 w-4" />
+              </WithTooltip>
               Filters
             </Button>
             <Select value={params.sort} onValueChange={(v) => setParam('sort', v)}>

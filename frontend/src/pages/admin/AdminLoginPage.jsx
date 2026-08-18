@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label, FieldError } from '@/components/ui/label';
 import { Seo } from '@/components/Seo';
 import { toast } from 'sonner';
+import { WithTooltip } from '@/components/ui/tooltip';
 
 const schema = z.object({
   email: z.string().email(),
@@ -49,7 +50,9 @@ export function AdminLoginPage() {
       <section className="flex items-center justify-center bg-background px-4 py-16 sm:px-8">
         <div className="w-full max-w-sm">
           <div className="mb-8 flex items-center gap-2 text-accent">
-            <Shield className="h-4 w-4" aria-hidden />
+            <WithTooltip label="Staff only">
+              <Shield className="h-4 w-4" />
+            </WithTooltip>
             <p className="caption text-accent">Authorized staff only</p>
           </div>
           <h2 className="font-display text-h2">Sign in to admin</h2>

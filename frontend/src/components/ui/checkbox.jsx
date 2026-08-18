@@ -1,6 +1,7 @@
 import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import { WithTooltip } from '@/components/ui/tooltip';
 
 export function Checkbox({ className, ...props }) {
   return (
@@ -12,7 +13,9 @@ export function Checkbox({ className, ...props }) {
       {...props}
     >
       <CheckboxPrimitive.Indicator className="flex items-center justify-center text-current">
-        <Check className="h-3 w-3" />
+        <WithTooltip label="Selected">
+          <Check className="h-3 w-3" />
+        </WithTooltip>
       </CheckboxPrimitive.Indicator>
     </CheckboxPrimitive.Root>
   );

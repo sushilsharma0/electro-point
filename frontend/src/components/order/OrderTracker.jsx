@@ -15,6 +15,7 @@ import {
   trackingStepIndex,
 } from '@/lib/orderTracking';
 import { toast } from 'sonner';
+import { WithTooltip } from '@/components/ui/tooltip';
 
 const STEP_ICONS = [ClipboardCheck, Package, Package, Truck, MapPin, Check];
 
@@ -52,22 +53,25 @@ export function OrderProgressBar({ status, className }) {
   );
 }
 
-function StepNode({ index, current, failed }) {
+function StepNode({ index, current, failed, label }) {
   const Icon = STEP_ICONS[index] || Package;
   const done = !failed && index < current;
   const now = !failed && index === current;
+  const tip = done ? `${label} — done` : now ? `${label} — current` : label;
   return (
-    <span
-      className={cn(
-        'relative z-[1] flex h-9 w-9 shrink-0 items-center justify-center rounded-full border bg-surface transition-colors duration-200',
-        done && 'border-foreground bg-foreground text-primary-fg',
-        now && 'ep-tracker-now border-accent text-accent',
-        !done && !now && 'border-border text-muted',
-        failed && 'border-danger/50 text-danger',
-      )}
-    >
-      {done ? <Check className="h-4 w-4" aria-hidden /> : <Icon className="h-4 w-4" aria-hidden />}
-    </span>
+    <WithTooltip label={tip}>
+      <span
+        className={cn(
+          'relative z-[1] flex h-9 w-9 shrink-0 items-center justify-center rounded-full border bg-surface transition-colors duration-200',
+          done && 'border-foreground bg-foreground text-primary-fg',
+          now && 'ep-tracker-now border-accent text-accent',
+          !done && !now && 'border-border text-muted',
+          failed && 'border-danger/50 text-danger',
+        )}
+      >
+        {done ? <Check className="h-4 w-4" aria-hidden /> : <Icon className="h-4 w-4" aria-hidden />}
+      </span>
+    </WithTooltip>
   );
 }
 
@@ -82,7 +86,7 @@ export function OrderStepper({ status }) {
         return (
           <li key={step.key} className={cn('min-w-0', last ? 'w-9' : 'flex-1')} aria-current={i === current ? 'step' : undefined}>
             <div className="flex items-center">
-              <StepNode index={i} current={current} failed={failed} />
+              <StepNode index={i} current={current} failed={failed} label={step.label} />
               {last ? null : (
                 <span
                   className={cn('mx-2 h-px min-w-4 flex-1', filled ? 'bg-foreground' : 'bg-border')}
@@ -111,7 +115,7 @@ export function OrderStepperMobile({ status }) {
         return (
           <li key={step.key} className="flex gap-3" aria-current={i === current ? 'step' : undefined}>
             <div className="flex flex-col items-center">
-              <StepNode index={i} current={current} failed={failed} />
+              <StepNode index={i} current={current} failed={failed} label={step.label} />
               {last ? null : <span className={cn('w-px flex-1', filled ? 'bg-foreground' : 'bg-border')} aria-hidden />}
             </div>
             <p className={cn('pb-6 pt-2 text-sm', i === current ? 'font-medium text-foreground' : 'text-muted')}>
@@ -182,7 +186,9 @@ export function ShipmentCard({ tracking, shippingMethod }) {
           className="mt-4 inline-flex items-center gap-2 text-sm text-accent transition-colors duration-200 hover:text-accent-hover"
         >
           Open courier tracking
-          <ExternalLink className="h-4 w-4" aria-hidden />
+          <WithTooltip label="Opens in a new tab">
+            <ExternalLink className="h-4 w-4" />
+          </WithTooltip>
         </a>
       ) : null}
     </section>

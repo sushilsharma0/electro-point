@@ -8,6 +8,7 @@ import { useCart } from '@/hooks/useCart';
 import { useCartUi } from '@/store/cart';
 import { formatNpr } from '@/lib/money';
 import { CartDrawerSkeleton } from '@/components/ui/skeleton';
+import { WithTooltip } from '@/components/ui/tooltip';
 
 export function CartDrawer() {
   const { pathname } = useLocation();
@@ -44,7 +45,9 @@ export function CartDrawer() {
             <CartDrawerSkeleton />
           ) : !items.length ? (
             <div className="flex flex-col items-center py-16 text-center">
-              <ShoppingBag className="h-8 w-8 text-muted" aria-hidden />
+              <WithTooltip label="Empty cart">
+                <ShoppingBag className="h-8 w-8 text-muted" />
+              </WithTooltip>
               <p className="mt-3 text-sm text-muted">Your cart is empty.</p>
               <Button asChild variant="outline" className="mt-4" onClick={closeDrawer}>
                 <Link to="/shop">Shop devices</Link>

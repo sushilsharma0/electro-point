@@ -4,6 +4,7 @@ import { ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { listFrom } from '@/lib/api';
 import { MegaMenuSkeleton } from '@/components/ui/skeleton';
+import { WithTooltip } from '@/components/ui/tooltip';
 
 export function MegaMenu({ categories, open, onClose, isLoading = false }) {
   const tree = listFrom(categories);
@@ -69,7 +70,9 @@ export function MegaMenu({ categories, open, onClose, isLoading = false }) {
                   }}
                 >
                   {cat.name}
-                  <ChevronRight className="h-3.5 w-3.5 text-muted" aria-hidden />
+                  <WithTooltip label="Open category">
+                    <ChevronRight className="h-3.5 w-3.5 text-muted" />
+                  </WithTooltip>
                 </button>
               </li>
             );
