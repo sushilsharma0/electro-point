@@ -168,6 +168,13 @@ describe('orders, inventory, payments', { timeout: 120_000 }, () => {
     assert.equal(placed.status, 201, placed.body?.error?.message);
     const orderId = placed.body.data._id;
     const orderNumber = placed.body.data.orderNumber;
+    assert.ok(placed.body.data.items?.[0]?.image);
+
+    const { Order } = await import('../src/models/Order.js');
+    await Order.updateOne(
+      { _id: orderId },
+      { $unset: { 'items.0.image': 1, 'items.0.slug': 1, 'items.0.brand': 1 } },
+    );
 
     const adminEmail = `shipadmin${Date.now()}@electropoint.com`;
     await User.create({
@@ -206,6 +213,7 @@ describe('orders, inventory, payments', { timeout: 120_000 }, () => {
     assert.equal(mine.status, 200);
     assert.equal(mine.body.data.status, 'shipped');
     assert.equal(mine.body.data.tracking.trackingNumber, 'PTH-88221');
+    assert.ok(mine.body.data.items?.[0]?.image);
     assert.ok((mine.body.data.timeline || []).some((t) => t.note === 'Handed to Pathao from Kathmandu hub'));
 
     const guest = client(app);
@@ -216,6 +224,8 @@ describe('orders, inventory, payments', { timeout: 120_000 }, () => {
     assert.equal(tracked.body.data.tracking.carrier, 'Pathao');
     assert.equal(tracked.body.data.payment.method, 'cod');
     assert.equal(tracked.body.data.user, undefined);
+    assert.ok(tracked.body.data.items?.[0]?.image);
+    assert.equal(tracked.body.data.items[0].name, product.name);
 
     const miss = await guest.post('/api/v1/orders/track').send({ orderNumber, email: 'other@example.com' });
     assert.equal(miss.status, 404);

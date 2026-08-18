@@ -35,6 +35,7 @@ describe('catalog, cart, coupon', { timeout: 120_000 }, () => {
     assert.equal(res.body.data.items.length, 1);
     assert.equal(res.body.data.items[0].qty, 2);
     assert.equal(res.body.data.items[0].unitPricePaisa, 1000000);
+    assert.ok(res.body.data.items[0].thumbnail);
     assert.equal(res.body.data.subtotalPaisa, 2000000);
   });
 

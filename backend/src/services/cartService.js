@@ -69,9 +69,10 @@ export async function presentCart(cart, userId) {
     qty: item.qty,
     unitPricePaisa: item.unitPricePaisa,
     lineTotalPaisa: item.lineTotalPaisa,
-    thumbnail: item.thumbnail,
+    thumbnail: item.image || item.thumbnail,
+    image: item.image || item.thumbnail,
     brand: item.brand,
-    slug: item.product.slug,
+    slug: item.slug || item.product.slug,
     available: item.product.availableStock(item.variantId),
   }));
   return {

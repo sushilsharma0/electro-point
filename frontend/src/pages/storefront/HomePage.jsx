@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ProductCard } from '@/components/product/ProductCard';
+import { ProductThumb } from '@/components/product/ProductThumb';
 import { RatingStars } from '@/components/product/RatingStars';
 import { PriceDisplay } from '@/components/product/PriceDisplay';
 import { Seo, orgJsonLd } from '@/components/Seo';
@@ -403,7 +404,9 @@ function ReviewsRow({ products }) {
         <h2 className="font-display text-h2">From verified buyers</h2>
         <div className="mt-8 grid gap-6 md:grid-cols-2">
           {withRating.slice(0, 2).map((p) => (
-            <blockquote key={idOf(p)} className="border border-border bg-surface p-6">
+            <blockquote key={idOf(p)} className="flex gap-4 border border-border bg-surface p-6">
+              <ProductThumb product={p} size="lg" to={`/product/${p.slug}`} />
+              <div className="min-w-0">
               <RatingStars value={p.ratingAvg} count={p.ratingCount} />
               <p className="mt-4 text-foreground">Rated {Number(p.ratingAvg).toFixed(1)} for {p.name}.</p>
               <footer className="mt-4 text-sm text-muted">
@@ -411,6 +414,7 @@ function ReviewsRow({ products }) {
                   {p.brand} · {p.name}
                 </Link>
               </footer>
+              </div>
             </blockquote>
           ))}
         </div>

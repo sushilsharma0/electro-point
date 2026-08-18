@@ -1,6 +1,7 @@
 import { Product } from '../models/Product.js';
 import { InventoryTransaction } from '../models/InventoryTransaction.js';
 import { ApiError } from '../utils/ApiError.js';
+import { productThumbUrl } from '../utils/productImage.js';
 
 function stockTarget(product, variantId) {
   if (variantId) {
@@ -193,7 +194,7 @@ export async function adjustStock({ productId, variantId, qtyDelta, reason, admi
 
 export async function listLowStock() {
   const products = await Product.find({ status: { $ne: 'archived' } })
-    .select('name sku slug stock reservedStock lowStockThreshold variants thumbnail brand')
+    .select('name sku slug stock reservedStock lowStockThreshold variants thumbnail brand images')
     .lean();
   const rows = [];
   for (const p of products) {
@@ -211,7 +212,10 @@ export async function listLowStock() {
             reservedStock: v.reservedStock,
             available,
             lowStockThreshold: p.lowStockThreshold,
-            thumbnail: p.thumbnail,
+            thumbnail: productThumbUrl(p, v._id),
+            image: productThumbUrl(p, v._id),
+            images: p.images,
+            slug: p.slug,
             brand: p.brand,
           });
         }
@@ -228,7 +232,10 @@ export async function listLowStock() {
           reservedStock: p.reservedStock,
           available,
           lowStockThreshold: p.lowStockThreshold,
-          thumbnail: p.thumbnail,
+          thumbnail: productThumbUrl(p),
+          image: productThumbUrl(p),
+          images: p.images,
+          slug: p.slug,
           brand: p.brand,
         });
       }

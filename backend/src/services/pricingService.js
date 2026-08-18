@@ -2,6 +2,7 @@ import { Coupon } from '../models/Coupon.js';
 import { Order } from '../models/Order.js';
 import { StoreSettings } from '../models/StoreSettings.js';
 import { ApiError } from '../utils/ApiError.js';
+import { productThumbUrl } from '../utils/productImage.js';
 
 export async function getStoreSettings() {
   let settings = await StoreSettings.findOne({ key: 'store' });
@@ -95,6 +96,7 @@ export async function quoteFromLines({ lines, shippingMethod, couponCode, userId
     if (unitPricePaisa == null) throw ApiError.badRequest('Invalid variant');
     const qty = line.qty;
     const variant = line.variantId ? line.product.variants.id(line.variantId) : null;
+    const image = productThumbUrl(line.product, line.variantId);
     return {
       product: line.product,
       variantId: line.variantId || null,
@@ -106,8 +108,10 @@ export async function quoteFromLines({ lines, shippingMethod, couponCode, userId
       lineTotalPaisa: unitPricePaisa * qty,
       category: line.product.category,
       subcategory: line.product.subcategory,
-      thumbnail: line.product.thumbnail,
+      thumbnail: image,
+      image,
       brand: line.product.brand,
+      slug: line.product.slug,
     };
   });
 

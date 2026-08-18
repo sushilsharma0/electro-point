@@ -12,6 +12,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Seo } from '@/components/Seo';
 import { toast } from 'sonner';
 import { OrderProgressBar, OrderStatusBadge, OrderTracker } from '@/components/order/OrderTracker';
+import { OrderItemList } from '@/components/order/OrderItemList';
+import { ProductNameCell } from '@/components/product/ProductThumb';
 import { AdminShipmentForm, ORDER_STATUSES } from '@/components/order/AdminShipmentForm';
 
 export function AdminCategoriesPage() {
@@ -174,16 +176,7 @@ export function AdminOrderDetailPage() {
       </div>
       <OrderTracker order={order} />
       <AdminShipmentForm order={order} />
-      <ul className="border border-border text-sm">
-        {(order.items || []).map((it, i) => (
-          <li key={i} className="flex justify-between border-b border-border px-4 py-2 last:border-b-0">
-            <span>
-              {it.name} × {it.qty}
-            </span>
-            <span className="tabular">{formatNpr(it.lineTotalPaisa)}</span>
-          </li>
-        ))}
-      </ul>
+      <OrderItemList items={order.items || []} variant="admin" />
       <p className="font-semibold">Total {formatNpr(order.totalPaisa)}</p>
       {order.address ? (
         <p className="text-sm text-muted">
@@ -296,7 +289,9 @@ export function AdminInventoryPage() {
         <TableBody>
           {rows.map((r) => (
             <TableRow key={r._id}>
-              <TableCell>{r.name || r.product?.name}</TableCell>
+              <TableCell>
+                <ProductNameCell product={r} name={r.name || r.product?.name} to={r._id ? `/admin/products/${r._id}` : undefined} />
+              </TableCell>
               <TableCell className="tabular">{r.stock}</TableCell>
               <TableCell className="tabular">{r.reservedStock}</TableCell>
               <TableCell className="tabular">{(r.stock || 0) - (r.reservedStock || 0)}</TableCell>
@@ -405,7 +400,9 @@ export function AdminReviewsPage() {
         <TableBody>
           {reviews.map((r) => (
             <TableRow key={r._id}>
-              <TableCell>{r.product?.name || r.product}</TableCell>
+              <TableCell>
+                <ProductNameCell product={r.product} name={r.product?.name || r.product} />
+              </TableCell>
               <TableCell>{r.rating}</TableCell>
               <TableCell>{r.status}</TableCell>
               <TableCell className="space-x-2">

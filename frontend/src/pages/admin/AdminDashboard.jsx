@@ -4,6 +4,7 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 import { adminApi } from '@/lib/api';
 import { formatNpr } from '@/lib/money';
 import { Seo } from '@/components/Seo';
+import { ProductNameCell } from '@/components/product/ProductThumb';
 import { NetworkErrorPage } from '@/pages/errors/ErrorPages';
 
 const ACCENT = '#0A66FF';
@@ -75,8 +76,8 @@ export function AdminDashboardPage() {
           <h2 className="text-sm font-medium">Top products</h2>
           <ul className="mt-3 text-sm">
             {topProducts.map((p) => (
-              <li key={p._id || p.name} className="flex justify-between border-b border-border py-2">
-                <span>{p.name}</span>
+              <li key={p._id || p.name} className="flex items-center justify-between gap-3 border-b border-border py-2">
+                <ProductNameCell product={p} to={p._id ? `/admin/products/${p._id}` : undefined} />
                 <span className="tabular">{p.sold ?? p.qty}</span>
               </li>
             ))}
@@ -91,9 +92,12 @@ export function AdminDashboardPage() {
           </div>
           <ul className="mt-3 text-sm">
             {lowStock.map((p) => (
-              <li key={p._id} className="flex justify-between border-b border-border py-2">
-                <span>{p.name}</span>
-                <span className="text-warning tabular">{p.stock}</span>
+              <li key={p._id || p.productId} className="flex items-center justify-between gap-3 border-b border-border py-2">
+                <ProductNameCell
+                  product={p}
+                  to={p.productId || p._id ? `/admin/products/${p.productId || p._id}` : undefined}
+                />
+                <span className="text-warning tabular">{p.available ?? p.stock}</span>
               </li>
             ))}
           </ul>

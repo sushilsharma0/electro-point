@@ -5,7 +5,7 @@ import { listLowStock, adjustStock } from './inventoryService.js';
 
 export async function overview() {
   const products = await Product.find({ status: { $ne: 'archived' } })
-    .select('name sku stock reservedStock lowStockThreshold variants thumbnail brand slug')
+    .select('name sku stock reservedStock lowStockThreshold variants thumbnail brand slug images')
     .lean();
   const rows = products.map((p) => {
     if (p.variants?.length) {
@@ -33,7 +33,7 @@ export async function transactions(query) {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .populate('product', 'name sku')
+      .populate('product', 'name sku thumbnail images slug')
       .populate('admin', 'name email')
       .populate('order', 'orderNumber')
       .lean(),

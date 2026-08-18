@@ -3,6 +3,7 @@ import { User } from '../models/User.js';
 import { Product } from '../models/Product.js';
 import { Payment } from '../models/Payment.js';
 import { listLowStock } from './inventoryService.js';
+import { productThumbUrl } from '../utils/productImage.js';
 
 function startOfDay(d) {
   const x = new Date(d);
@@ -108,6 +109,17 @@ export async function dashboard() {
 
   const pick = (agg) => ({ revenuePaisa: agg[0]?.revenue || 0, orders: agg[0]?.orders || 0 });
 
+  const productIds = topProducts.map((p) => p._id).filter(Boolean);
+  const productDocs = productIds.length
+    ? await Product.find({ _id: { $in: productIds } }).select('thumbnail images slug').lean()
+    : [];
+  const thumbMap = new Map(productDocs.map((p) => [String(p._id), p]));
+  const topProductsWithImages = topProducts.map((p) => {
+    const doc = thumbMap.get(String(p._id));
+    const image = productThumbUrl(doc);
+    return { ...p, image, thumbnail: image, slug: doc?.slug || '' };
+  });
+
   return {
     revenuePaisa: revenue,
     paidOrders,
@@ -118,7 +130,7 @@ export async function dashboard() {
     today: pick(todayAgg),
     week: pick(weekAgg),
     month: pick(monthAgg),
-    topProducts,
+    topProducts: topProductsWithImages,
     topCategories,
     paymentMethodSplit: methodSplit.map((m) => ({ method: m._id || 'unknown', count: m.count, revenuePaisa: m.revenuePaisa })),
     orderStatusSplit: statusSplit.map((s) => ({ status: s._id, count: s.count })),

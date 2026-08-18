@@ -126,7 +126,7 @@ export async function suggest(q) {
     status: 'published',
     $or: [{ name: rx }, { brand: rx }, { sku: rx }, { tags: rx }],
   })
-    .select('name slug brand thumbnail pricePaisa salePricePaisa')
+    .select('name slug brand thumbnail pricePaisa salePricePaisa images')
     .limit(8)
     .lean();
   const brands = await Product.distinct('brand', { status: 'published', brand: rx });

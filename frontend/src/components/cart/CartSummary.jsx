@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { formatNpr } from '@/lib/money';
 import { useCart } from '@/hooks/useCart';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ProductThumb } from '@/components/product/ProductThumb';
 
 export function CartSummary({ cart, quote, quoteLoading = false, cta, ctaLabel = 'Checkout' }) {
   const totals = quote || cart || {};
@@ -27,6 +28,18 @@ export function CartSummary({ cart, quote, quoteLoading = false, cta, ctaLabel =
   return (
     <aside className="h-fit border border-border bg-surface p-5">
       <h2 className="font-display text-base font-semibold">Order summary</h2>
+      {(cart?.items || []).length ? (
+        <ul className="mt-4 space-y-3">
+          {(cart.items || []).map((item) => (
+            <li key={item.id || item._id} className="flex items-center gap-3 text-sm">
+              <ProductThumb item={item} size="sm" to={item.slug ? `/product/${item.slug}` : undefined} />
+              <span className="min-w-0 flex-1 truncate">
+                {item.name} × {item.qty}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
       <dl className="mt-4 space-y-2 text-sm">
         <div className="flex justify-between">
           <dt className="text-muted">Subtotal</dt>

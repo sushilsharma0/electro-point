@@ -9,6 +9,7 @@ import { notify } from './notificationService.js';
 import { parsePagination, paginated } from '../utils/pagination.js';
 import { Coupon } from '../models/Coupon.js';
 import { Cart } from '../models/Cart.js';
+import { hydrateOrderItemImages } from '../utils/productImage.js';
 
 function ymd(date = new Date()) {
   const y = date.getUTCFullYear();
@@ -80,6 +81,9 @@ export async function createOrderFromCart({ user, addressId, shippingMethod, pay
       variantId: item.variantId,
       name: item.name,
       sku: item.sku,
+      image: item.image || item.thumbnail || '',
+      slug: item.slug || item.product.slug || '',
+      brand: item.brand || '',
       options: item.options,
       qty: item.qty,
       unitPricePaisa: item.unitPricePaisa,
@@ -153,7 +157,7 @@ export async function listMine(user, query) {
     Order.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
     Order.countDocuments(filter),
   ]);
-  return paginated({ items, total, page, limit });
+  return paginated({ items: await hydrateOrderItemImages(items), total, page, limit });
 }
 
 export async function getMine(user, id) {
@@ -162,7 +166,7 @@ export async function getMine(user, id) {
   if (String(order.user) !== String(user._id) && user.role !== 'superadmin') {
     throw ApiError.forbidden();
   }
-  return order;
+  return hydrateOrderItemImages(order);
 }
 
 export async function adminList(query) {
@@ -180,13 +184,13 @@ export async function adminList(query) {
     Order.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate('user', 'name email').lean(),
     Order.countDocuments(filter),
   ]);
-  return paginated({ items, total, page, limit });
+  return paginated({ items: await hydrateOrderItemImages(items), total, page, limit });
 }
 
 export async function adminGet(id) {
   const order = await Order.findById(id).populate('user', 'name email phone status');
   if (!order) throw ApiError.notFound('Order not found');
-  return order;
+  return hydrateOrderItemImages(order);
 }
 
 function applyTracking(order, tracking = {}) {
@@ -219,6 +223,9 @@ export function publicTrackingView(order) {
       name: item.name,
       qty: item.qty,
       sku: item.sku,
+      image: item.image || item.thumbnail || '',
+      slug: item.slug || '',
+      brand: item.brand || '',
     })),
     totalPaisa: order.totalPaisa,
     timeline: order.timeline || [],
@@ -246,12 +253,13 @@ export async function trackByNumber({ orderNumber, email }) {
   const mail = String(email || '').trim().toLowerCase();
   if (!number || !mail) throw ApiError.badRequest('Order number and email are required');
   const order = await Order.findOne({ orderNumber: number }).select(
-    'orderNumber email status createdAt shippingMethod items.name items.qty items.sku totalPaisa timeline tracking payment.method payment.status address.city address.state address.country',
+    'orderNumber email status createdAt shippingMethod items totalPaisa timeline tracking payment.method payment.status address.city address.state address.country',
   );
   if (!order || String(order.email || '').toLowerCase() !== mail) {
     throw ApiError.notFound('Order not found');
   }
-  return publicTrackingView(order);
+  const hydrated = await hydrateOrderItemImages(order);
+  return publicTrackingView(hydrated);
 }
 
 export async function updateStatus(order, status, note = '', adminUser, tracking) {

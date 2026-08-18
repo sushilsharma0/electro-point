@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label, FieldError } from '@/components/ui/label';
 import { Container } from '@/components/layout/Container';
 import { OrderTracker } from '@/components/order/OrderTracker';
+import { OrderItemList } from '@/components/order/OrderItemList';
 import { Seo } from '@/components/Seo';
 
 export function TrackOrderPage() {
@@ -82,15 +83,7 @@ export function TrackOrderPage() {
       {result ? (
         <div className="mt-10 space-y-8">
           <OrderTracker order={result} />
-          <ul className="divide-y divide-border border border-border">
-            {(result.items || []).map((item, i) => (
-              <li key={`${item.sku}-${i}`} className="flex justify-between px-4 py-3 text-sm">
-                <span>
-                  {item.name} × {item.qty}
-                </span>
-              </li>
-            ))}
-          </ul>
+          <OrderItemList items={result.items || []} showPrice={false} />
           {result.totalPaisa != null ? (
             <p className="font-semibold">Total {formatNpr(result.totalPaisa)}</p>
           ) : null}

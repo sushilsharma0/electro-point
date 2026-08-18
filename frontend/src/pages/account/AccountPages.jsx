@@ -17,6 +17,8 @@ import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
 import { AccountSkeleton, AccountOrderSkeleton, AddressSkeleton, ProductGridSkeleton } from '@/components/ui/skeleton';
 import { OrderProgressBar, OrderStatusBadge, OrderTracker } from '@/components/order/OrderTracker';
+import { OrderItemList } from '@/components/order/OrderItemList';
+import { ProductThumb } from '@/components/product/ProductThumb';
 
 export function AccountHomePage() {
   const { user } = useAuth();
@@ -71,12 +73,24 @@ export function AccountOrdersPage() {
               to={`/account/orders/${o._id}`}
               className="flex flex-col gap-3 p-4 transition-colors duration-200 hover:bg-muted-bg sm:flex-row sm:items-center sm:justify-between"
             >
-              <span className="min-w-0 flex-1">
-                <span className="flex flex-wrap items-center gap-2">
-                  <span className="font-medium">{o.orderNumber}</span>
-                  <OrderStatusBadge status={o.status} />
+              <span className="flex min-w-0 flex-1 items-start gap-3">
+                <span className="flex shrink-0">
+                  {(o.items || []).slice(0, 3).map((item, i) => (
+                    <ProductThumb
+                      key={item.sku || i}
+                      item={item}
+                      size="sm"
+                      className={i ? '-ml-2 ring-2 ring-surface' : ''}
+                    />
+                  ))}
                 </span>
-                <OrderProgressBar status={o.status} className="mt-3 max-w-sm" />
+                <span className="min-w-0 flex-1">
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium">{o.orderNumber}</span>
+                    <OrderStatusBadge status={o.status} />
+                  </span>
+                  <OrderProgressBar status={o.status} className="mt-3 max-w-sm" />
+                </span>
               </span>
               <span className="tabular text-sm font-medium sm:text-base">{formatNpr(o.totalPaisa)}</span>
             </Link>
@@ -102,16 +116,7 @@ export function AccountOrderDetailPage() {
         <h2 className="mt-2 font-display text-h2">{order.orderNumber}</h2>
       </div>
       <OrderTracker order={order} />
-      <ul className="divide-y divide-border border border-border">
-        {(order.items || []).map((item, i) => (
-          <li key={i} className="flex justify-between px-4 py-3 text-sm">
-            <span>
-              {item.name} × {item.qty}
-            </span>
-            <span className="tabular">{formatNpr(item.lineTotalPaisa)}</span>
-          </li>
-        ))}
-      </ul>
+      <OrderItemList items={order.items || []} />
       <p className="font-semibold">Total {formatNpr(order.totalPaisa)}</p>
       {order.address ? (
         <p className="text-sm text-muted">

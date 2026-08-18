@@ -71,7 +71,7 @@ export async function adminList(query) {
   const filter = {};
   if (query.status) filter.status = query.status;
   const [items, total] = await Promise.all([
-    Review.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate('user', 'name email').populate('product', 'name slug').lean(),
+    Review.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate('user', 'name email').populate('product', 'name slug thumbnail images').lean(),
     Review.countDocuments(filter),
   ]);
   return paginated({ items, total, page, limit });

@@ -7,7 +7,7 @@ import { useDebounce } from '@/hooks/useMedia';
 import { getRecentSearches, pushRecentSearch } from '@/lib/storage';
 import { Input } from '@/components/ui/input';
 import { formatNpr } from '@/lib/money';
-import { productImage } from '@/lib/product';
+import { ProductThumb } from '@/components/product/ProductThumb';
 
 export function SearchBox({ compact = false, onNavigate }) {
   const [q, setQ] = useState('');
@@ -79,7 +79,7 @@ export function SearchBox({ compact = false, onNavigate }) {
                       onNavigate?.();
                     }}
                   >
-                    <img src={productImage(p)} alt="" className="h-10 w-10 object-contain product-stage" />
+                    <ProductThumb product={p} size="sm" />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm">{p.name}</span>
                       <span className="text-xs text-muted">{p.brand}</span>

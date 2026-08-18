@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Seo } from '@/components/Seo';
 import { toast } from 'sonner';
+import { ProductNameCell } from '@/components/product/ProductThumb';
 
 export function AdminProductsPage() {
   const [q, setQ] = useState('');
@@ -52,9 +53,7 @@ export function AdminProductsPage() {
           {products.map((p) => (
             <TableRow key={p._id}>
               <TableCell>
-                <Link to={`/admin/products/${p._id}`} className="hover:text-accent">
-                  {p.name}
-                </Link>
+                <ProductNameCell product={p} to={`/admin/products/${p._id}`} />
               </TableCell>
               <TableCell className="tabular">{p.sku}</TableCell>
               <TableCell className="tabular">{formatNpr(p.salePricePaisa || p.pricePaisa)}</TableCell>

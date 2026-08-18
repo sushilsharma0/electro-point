@@ -4,6 +4,7 @@ import { useCompareStore } from '@/store/compare';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { catalogApi, listFrom } from '@/lib/api';
+import { ProductThumb } from '@/components/product/ProductThumb';
 
 export function CompareBar() {
   const ids = useCompareStore((s) => s.ids);
@@ -25,6 +26,7 @@ export function CompareBar() {
         <p className="caption shrink-0">Compare {ids.length}/4</p>
         {products.map((p) => (
           <div key={p._id || p.slug} className="flex items-center gap-2 border border-border px-2 py-1 text-sm">
+            <ProductThumb product={p} size="xs" />
             <span className="max-w-[10rem] truncate">{p.name}</span>
             <button type="button" aria-label={`Remove ${p.name}`} className="cursor-pointer text-muted hover:text-foreground" onClick={() => remove(p._id || p.id)}>
               <X className="h-3.5 w-3.5" />
