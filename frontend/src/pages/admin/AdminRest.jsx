@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Trash2, Minus, Plus } from 'lucide-react';
+import { Trash2, Minus, Plus, Copy } from 'lucide-react';
 import { adminApi, listFrom } from '@/lib/api';
 import { formatNpr } from '@/lib/money';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,7 @@ import { AdminShipmentForm, ORDER_STATUSES } from '@/components/order/AdminShipm
 import { HeroProductPicker } from '@/components/admin/HeroProductPicker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { variantLabel } from '@/lib/product';
+import { formatOrderStamp, paymentLabel } from '@/lib/orderTracking';
 
 export function AdminCategoriesPage() {
   const qc = useQueryClient();
@@ -199,7 +200,13 @@ export function AdminOrderDetailPage() {
   const q = useQuery({ queryKey: ['admin-order', id], queryFn: () => adminApi.order(id) });
   const order = q.data?.order || q.data;
   if (q.isLoading || !order) return null;
-  const customer = order.user;
+  const customer = order.user && typeof order.user === 'object' ? order.user : null;
+  const address = order.address || {};
+  const phone = order.phone || address.phone || customer?.phone || '';
+  const email = order.email || customer?.email || '';
+  const name = address.fullName || customer?.name || 'Customer';
+  const lines = [address.line1, address.line2, [address.city, address.state, address.postalCode].filter(Boolean).join(', '), address.country].filter(Boolean);
+
   return (
     <div className="space-y-8">
       <Seo title={order.orderNumber} noindex />
@@ -208,22 +215,125 @@ export function AdminOrderDetailPage() {
           All orders
         </Link>
         <h1 className="mt-2 font-display text-2xl font-semibold">{order.orderNumber}</h1>
-        {customer?.email ? (
-          <p className="mt-1 text-sm text-muted">
-            {customer.name || 'Customer'} · {customer.email}
-          </p>
-        ) : null}
+        {order.createdAt ? <p className="mt-1 text-sm text-muted">Placed {formatOrderStamp(order.createdAt)}</p> : null}
       </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section className="border border-border bg-surface p-5">
+          <p className="caption">Customer</p>
+          <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+            <AdminFact label="Name">{name}</AdminFact>
+            <AdminFact label="Phone">
+              {phone ? (
+                <span className="flex items-center gap-2">
+                  <a href={`tel:${phone}`} className="hover:text-accent">
+                    {phone}
+                  </a>
+                  <CopyButton value={phone} label="Phone" />
+                </span>
+              ) : (
+                '—'
+              )}
+            </AdminFact>
+            <AdminFact label="Email">
+              {email ? (
+                <span className="flex min-w-0 items-center gap-2">
+                  <a href={`mailto:${email}`} className="min-w-0 truncate hover:text-accent">
+                    {email}
+                  </a>
+                  <CopyButton value={email} label="Email" />
+                </span>
+              ) : (
+                '—'
+              )}
+            </AdminFact>
+            <AdminFact label="Account">{customer?.status || 'Guest checkout'}</AdminFact>
+          </dl>
+        </section>
+
+        <section className="border border-border bg-surface p-5">
+          <p className="caption">Delivery</p>
+          <address className="mt-4 not-italic text-sm">
+            {address.fullName ? <p className="font-medium">{address.fullName}</p> : null}
+            {address.phone && address.phone !== phone ? <p className="mt-1">{address.phone}</p> : null}
+            {lines.length ? (
+              lines.map((line) => (
+                <p key={line} className="mt-1 text-muted">
+                  {line}
+                </p>
+              ))
+            ) : (
+              <p className="text-muted">No address on this order.</p>
+            )}
+          </address>
+          {order.shippingMethod ? (
+            <p className="mt-4 text-sm">
+              <span className="caption">Method</span>
+              <span className="mt-1 block capitalize">{order.shippingMethod.replaceAll('_', ' ')}</span>
+            </p>
+          ) : null}
+        </section>
+      </div>
+
       <OrderTracker order={order} />
       <AdminShipmentForm order={order} />
       <OrderItemList items={order.items || []} variant="admin" />
-      <p className="font-semibold">Total {formatNpr(order.totalPaisa)}</p>
-      {order.address ? (
-        <p className="text-sm text-muted">
-          {order.address.fullName} · {order.address.line1}, {order.address.city}
-        </p>
-      ) : null}
+      <AdminOrderTotals order={order} />
     </div>
+  );
+}
+
+function AdminFact({ label, children }) {
+  return (
+    <div className="min-w-0">
+      <dt className="caption">{label}</dt>
+      <dd className="mt-1 text-sm">{children}</dd>
+    </div>
+  );
+}
+
+function CopyButton({ value, label }) {
+  return (
+    <Button
+      type="button"
+      size="icon"
+      variant="ghost"
+      className="h-8 w-8 shrink-0"
+      aria-label={`Copy ${label.toLowerCase()}`}
+      onClick={() => {
+        navigator.clipboard.writeText(value).then(
+          () => toast.success(`${label} copied`),
+          () => toast.error('Could not copy'),
+        );
+      }}
+    >
+      <Copy />
+    </Button>
+  );
+}
+
+function AdminOrderTotals({ order }) {
+  const rows = [
+    ['Subtotal', order.subtotalPaisa],
+    order.discountPaisa ? ['Discount', -order.discountPaisa] : null,
+    ['Shipping', order.shippingPaisa || 0],
+    order.taxPaisa ? ['Tax', order.taxPaisa] : null,
+  ].filter(Boolean);
+  return (
+    <section className="max-w-sm space-y-2">
+      {order.couponCode ? <p className="text-sm text-muted">Coupon {order.couponCode}</p> : null}
+      {paymentLabel(order) ? <p className="text-sm text-muted">{paymentLabel(order)}</p> : null}
+      {rows.map(([label, paisa]) => (
+        <div key={label} className="flex justify-between text-sm">
+          <span className="text-muted">{label}</span>
+          <span className="tabular">{formatNpr(paisa)}</span>
+        </div>
+      ))}
+      <div className="flex justify-between border-t border-border pt-2 font-semibold">
+        <span>Total</span>
+        <span className="tabular">{formatNpr(order.totalPaisa)}</span>
+      </div>
+    </section>
   );
 }
 
