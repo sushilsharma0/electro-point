@@ -697,7 +697,13 @@ export function AdminSettingsPage() {
     onError: (e) => toast.error(e.message),
   });
   if (!form) return null;
-  const heroIds = (form.homepage?.heroProductIds || []).map(String);
+  const heroIds = (
+    form.homepage?.heroProductIds?.length
+      ? form.homepage.heroProductIds
+      : (form.heroProducts || []).map((p) => p._id)
+  )
+    .map((id) => String(id?._id || id || ''))
+    .filter(Boolean);
   const autoplaySec = Math.round((form.homepage?.heroAutoplayMs || 6000) / 1000);
   return (
     <form
@@ -737,7 +743,15 @@ export function AdminSettingsPage() {
       </div>
       <HeroProductPicker
         ids={heroIds}
-        onChange={(heroProductIds) => setForm({ ...form, homepage: { ...form.homepage, heroProductIds } })}
+        products={form.heroProducts || []}
+        autoplayMs={form.homepage?.heroAutoplayMs || 6000}
+        onChange={(heroProductIds, heroProducts) =>
+          setForm({
+            ...form,
+            homepage: { ...form.homepage, heroProductIds },
+            heroProducts: heroProducts || form.heroProducts,
+          })
+        }
       />
       <div className="grid gap-4 sm:grid-cols-2">
         <div>

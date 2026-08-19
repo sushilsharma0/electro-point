@@ -56,7 +56,10 @@ export async function adminGet() {
   const json = s.toObject();
   if (json.homepage?.heroProductIds) {
     json.homepage.heroProductIds = json.homepage.heroProductIds.map(String);
+  } else if (json.homepage) {
+    json.homepage.heroProductIds = [];
   }
+  json.heroProducts = await hydrateHeroProducts(json.homepage?.heroProductIds);
   return json;
 }
 
