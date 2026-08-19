@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Trash2 } from 'lucide-react';
 import { adminApi, listFrom } from '@/lib/api';
 import { formatNpr } from '@/lib/money';
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,15 @@ export function AdminCategoriesPage() {
     },
     onError: (e) => toast.error(e.message),
   });
+  const remove = useMutation({
+    mutationFn: adminApi.deleteCategory,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-categories'] });
+      qc.invalidateQueries({ queryKey: ['categories'] });
+      toast.success('Category deleted');
+    },
+    onError: (e) => toast.error(e.message),
+  });
 
   if (q.isLoading) return null;
 
@@ -40,7 +50,13 @@ export function AdminCategoriesPage() {
         <h1 className="font-display text-2xl font-semibold">Categories</h1>
         <ul className="mt-4 text-sm">
           {cats.map((c) => (
-            <CategoryNode key={c._id} node={c} depth={0} />
+            <CategoryNode
+              key={c._id}
+              node={c}
+              depth={0}
+              onDelete={(id) => remove.mutate(id)}
+              deletingId={remove.isPending ? remove.variables : null}
+            />
           ))}
         </ul>
       </div>
@@ -89,14 +105,35 @@ export function AdminCategoriesPage() {
   );
 }
 
-function CategoryNode({ node, depth }) {
+function CategoryNode({ node, depth, onDelete, deletingId }) {
   return (
-    <li className="border-b border-border py-2" style={{ paddingLeft: depth * 16 }}>
-      {node.name} <span className="text-muted">/{node.slug}</span>
+    <li className="border-b border-border">
+      <div className="flex items-center justify-between gap-3 py-2" style={{ paddingLeft: depth * 16 }}>
+        <span className="min-w-0 truncate">
+          {node.name} <span className="text-muted">/{node.slug}</span>
+        </span>
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          className="h-8 w-8 shrink-0"
+          aria-label={`Delete ${node.name}`}
+          disabled={deletingId === node._id}
+          onClick={() => onDelete(node._id)}
+        >
+          <Trash2 />
+        </Button>
+      </div>
       {node.children?.length ? (
         <ul>
           {node.children.map((ch) => (
-            <CategoryNode key={ch._id} node={ch} depth={depth + 1} />
+            <CategoryNode
+              key={ch._id}
+              node={ch}
+              depth={depth + 1}
+              onDelete={onDelete}
+              deletingId={deletingId}
+            />
           ))}
         </ul>
       ) : null}

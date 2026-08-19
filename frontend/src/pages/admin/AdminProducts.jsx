@@ -1,8 +1,9 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { adminApi, listFrom } from '@/lib/api';
 import { formatNpr } from '@/lib/money';
+import { availableStock, productImage } from '@/lib/product';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,17 +14,22 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Seo } from '@/components/Seo';
 import { toast } from 'sonner';
 import { ProductNameCell } from '@/components/product/ProductThumb';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 export function AdminProductsPage() {
+  const nav = useNavigate();
   const [q, setQ] = useState('');
+  const [pendingDelete, setPendingDelete] = useState(null);
   const query = useQuery({ queryKey: ['admin-products', q], queryFn: () => adminApi.products({ q, limit: 50 }) });
   const products = listFrom(query.data);
   const del = useMutation({
     mutationFn: adminApi.deleteProduct,
     onSuccess: () => {
+      setPendingDelete(null);
       query.refetch();
-      toast.success('Deleted');
+      toast.success('Product deleted');
     },
+    onError: (e) => toast.error(e.message),
   });
 
   if (query.isLoading) return null;
@@ -51,7 +57,11 @@ export function AdminProductsPage() {
         </TableHeader>
         <TableBody>
           {products.map((p) => (
-            <TableRow key={p._id}>
+            <TableRow
+              key={p._id}
+              className="cursor-pointer"
+              onClick={() => nav(`/admin/products/${p._id}`)}
+            >
               <TableCell>
                 <ProductNameCell product={p} to={`/admin/products/${p._id}`} />
               </TableCell>
@@ -60,7 +70,15 @@ export function AdminProductsPage() {
               <TableCell className="tabular">{p.stock}</TableCell>
               <TableCell>{p.status}</TableCell>
               <TableCell>
-                <Button type="button" size="sm" variant="ghost" onClick={() => del.mutate(p._id)}>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setPendingDelete(p);
+                  }}
+                >
                   Delete
                 </Button>
               </TableCell>
@@ -68,6 +86,179 @@ export function AdminProductsPage() {
           ))}
         </TableBody>
       </Table>
+      <ConfirmDeleteDialog
+        open={Boolean(pendingDelete)}
+        name={pendingDelete?.name}
+        pending={del.isPending}
+        onOpenChange={(open) => {
+          if (!open) setPendingDelete(null);
+        }}
+        onConfirm={() => pendingDelete && del.mutate(pendingDelete._id)}
+      />
+    </div>
+  );
+}
+
+const FLAG_LABELS = {
+  isFeatured: 'Featured',
+  isBestSeller: 'Best seller',
+  isNewArrival: 'New arrival',
+  isOnSale: 'On sale',
+};
+
+function DetailRow({ label, children }) {
+  if (children == null || children === '') return null;
+  return (
+    <div className="grid grid-cols-[8rem_1fr] gap-4 border-b border-border py-3 text-sm">
+      <dt className="text-muted">{label}</dt>
+      <dd className="min-w-0">{children}</dd>
+    </div>
+  );
+}
+
+export function AdminProductDetailPage() {
+  const { id } = useParams();
+  const nav = useNavigate();
+  const qc = useQueryClient();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const q = useQuery({ queryKey: ['admin-product', id], queryFn: () => adminApi.product(id) });
+  const product = q.data?.product || q.data;
+  const remove = useMutation({
+    mutationFn: () => adminApi.deleteProduct(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-products'] });
+      toast.success('Product deleted');
+      nav('/admin/products');
+    },
+    onError: (e) => toast.error(e.message),
+  });
+  if (q.isLoading || !product) return null;
+
+  const categoryName = product.category?.name || product.category || '—';
+  const subcategoryName = product.subcategory?.name || product.subcategory || '';
+  const flags = Object.entries(product.flags || {})
+    .filter(([, on]) => on)
+    .map(([key]) => FLAG_LABELS[key] || key);
+  const images = Array.isArray(product.images) ? product.images : [];
+  const variants = Array.isArray(product.variants) ? product.variants : [];
+  const specGroups = Array.isArray(product.specGroups) ? product.specGroups : [];
+
+  return (
+    <div className="space-y-8">
+      <Seo title={product.name || 'Product'} noindex />
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <Link to="/admin/products" className="text-sm text-accent transition-colors duration-200 hover:text-accent-hover">
+            All products
+          </Link>
+          <h1 className="mt-2 font-display text-2xl font-semibold">{product.name}</h1>
+          <p className="mt-1 text-sm text-muted">
+            {product.brand} · {product.sku} · {product.status}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {product.slug ? (
+            <Button asChild variant="outline">
+              <Link to={`/product/${product.slug}`} target='_blank'>View storefront</Link>
+            </Button>
+          ) : null}
+          <Button asChild>
+            <Link to={`/admin/products/${id}/edit`}>Update</Link>
+          </Button>
+          <Button type="button" variant="danger" onClick={() => setConfirmOpen(true)}>
+            Delete
+          </Button>
+        </div>
+      </div>
+
+      <ConfirmDeleteDialog
+        open={confirmOpen}
+        name={product.name}
+        pending={remove.isPending}
+        onOpenChange={setConfirmOpen}
+        onConfirm={() => remove.mutate()}
+      />
+
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,280px)_1fr]">
+        <div className="product-stage aspect-square overflow-hidden border border-border">
+          <img src={productImage(product)} alt={product.name} className="h-full w-full object-contain p-6" />
+        </div>
+        <dl>
+          <DetailRow label="Price">{formatNpr(product.salePricePaisa || product.pricePaisa)}</DetailRow>
+          {product.salePricePaisa && product.salePricePaisa < product.pricePaisa ? (
+            <DetailRow label="List price">{formatNpr(product.pricePaisa)}</DetailRow>
+          ) : null}
+          <DetailRow label="Stock">{availableStock(product)}</DetailRow>
+          <DetailRow label="Category">
+            {subcategoryName ? `${categoryName} / ${subcategoryName}` : categoryName}
+          </DetailRow>
+          <DetailRow label="Warranty">{product.warranty}</DetailRow>
+          <DetailRow label="Flags">{flags.length ? flags.join(' · ') : 'None'}</DetailRow>
+          <DetailRow label="Slug">/{product.slug}</DetailRow>
+        </dl>
+      </div>
+
+      {product.shortDescription ? <p className="max-w-2xl text-muted">{product.shortDescription}</p> : null}
+      {product.description ? <p className="max-w-2xl whitespace-pre-wrap text-sm">{product.description}</p> : null}
+
+      {specGroups.length ? (
+        <section>
+          <h2 className="font-display text-lg font-semibold">Specifications</h2>
+          <div className="mt-4 grid gap-6 md:grid-cols-2">
+            {specGroups.map((group) => (
+              <div key={group.name}>
+                <h3 className="text-sm font-medium">{group.name}</h3>
+                <dl className="mt-2">
+                  {(group.fields || []).map((field) => (
+                    <DetailRow key={field.key || field.label} label={field.label}>
+                      {field.value}
+                    </DetailRow>
+                  ))}
+                </dl>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {variants.length ? (
+        <section>
+          <h2 className="font-display text-lg font-semibold">Variants</h2>
+          <Table className="mt-4">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>SKU</TableHead>
+                <TableHead>Price</TableHead>
+                <TableHead>Stock</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {variants.map((v) => (
+                <TableRow key={v._id || v.sku}>
+                  <TableCell>{v.name || Object.values(v.options || {}).filter(Boolean).join(' · ')}</TableCell>
+                  <TableCell className="tabular">{v.sku}</TableCell>
+                  <TableCell className="tabular">{formatNpr(v.salePricePaisa || v.pricePaisa)}</TableCell>
+                  <TableCell className="tabular">{availableStock(v)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </section>
+      ) : null}
+
+      {images.length > 1 ? (
+        <section>
+          <h2 className="font-display text-lg font-semibold">Media</h2>
+          <ul className="mt-4 flex flex-wrap gap-2">
+            {images.map((im, i) => (
+              <li key={im.url || i} className="h-20 w-20 overflow-hidden border border-border product-stage">
+                <img src={im.url || im} alt={im.alt || ''} className="h-full w-full object-contain p-1" />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </div>
   );
 }
@@ -151,10 +342,12 @@ export function AdminProductFormPage() {
       if (isNew) {
         const created = await adminApi.createProduct(body);
         toast.success('Created');
-        nav(`/admin/products/${created._id || created.product?._id || ''}`);
+        const newId = created._id || created.product?._id || '';
+        nav(newId ? `/admin/products/${newId}` : '/admin/products');
       } else {
         await adminApi.updateProduct(id, body);
         toast.success('Saved');
+        nav(`/admin/products/${id}`);
       }
     } catch (err) {
       toast.error(err.message);
@@ -186,12 +379,17 @@ export function AdminProductFormPage() {
 
   return (
     <div className="space-y-6">
-      <Seo title={isNew ? 'New product' : 'Edit product'} noindex />
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-semibold">{isNew ? 'New product' : form.name || 'Edit'}</h1>
-        <Button type="button" onClick={save}>
-          Save
-        </Button>
+      <Seo title={isNew ? 'New product' : 'Update product'} noindex />
+      <div>
+        <Link to={isNew ? '/admin/products' : `/admin/products/${id}`} className="text-sm text-accent transition-colors duration-200 hover:text-accent-hover">
+          {isNew ? 'All products' : 'Product details'}
+        </Link>
+        <div className="mt-2 flex items-center justify-between gap-3">
+          <h1 className="font-display text-2xl font-semibold">{isNew ? 'New product' : form.name || 'Update product'}</h1>
+          <Button type="button" onClick={save}>
+            Save
+          </Button>
+        </div>
       </div>
       <Tabs defaultValue="basic">
         <TabsList>
@@ -359,6 +557,30 @@ export function AdminProductFormPage() {
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+function ConfirmDeleteDialog({ open, onOpenChange, name, pending, onConfirm }) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Delete product?</DialogTitle>
+          <DialogDescription>
+            {name ? `${name} will be removed from the catalog.` : 'This product will be removed from the catalog.'} This
+            cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={pending}>
+            Cancel
+          </Button>
+          <Button type="button" variant="danger" onClick={onConfirm} disabled={pending}>
+            {pending ? 'Deleting…' : 'Delete'}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

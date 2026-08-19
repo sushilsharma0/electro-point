@@ -50,12 +50,22 @@ export async function adminUpdate(id, payload) {
   return category;
 }
 
+async function descendantIds(parentId) {
+  const children = await Category.find({ parent: parentId }).select('_id').lean();
+  const ids = children.map((c) => c._id);
+  for (const child of children) {
+    ids.push(...(await descendantIds(child._id)));
+  }
+  return ids;
+}
+
 export async function adminRemove(id) {
-  const inUse = await Product.exists({ $or: [{ category: id }, { subcategory: id }] });
+  const category = await Category.findById(id);
+  if (!category) throw ApiError.notFound('Category not found');
+  const ids = [category._id, ...(await descendantIds(id))];
+  const inUse = await Product.exists({ $or: [{ category: { $in: ids } }, { subcategory: { $in: ids } }] });
   if (inUse) throw ApiError.conflict('Category has products; reassign them first');
-  const child = await Category.exists({ parent: id });
-  if (child) throw ApiError.conflict('Category has subcategories');
-  await Category.deleteOne({ _id: id });
+  await Category.deleteMany({ _id: { $in: ids } });
   return { deleted: true };
 }
 
