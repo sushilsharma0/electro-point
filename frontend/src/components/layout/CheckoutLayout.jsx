@@ -5,9 +5,14 @@ import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { Lock } from 'lucide-react';
 import { StorefrontOutletFallback } from '@/components/loading/RouteFallback';
 import { StorefrontBreadcrumbs } from '@/components/layout/StorefrontBreadcrumbs';
+import { MaintenanceModal } from '@/components/layout/MaintenanceModal';
 import { WithTooltip } from '@/components/ui/tooltip';
+import { useSettings } from '@/hooks/useCatalog';
 
 export function CheckoutLayout() {
+  const { settings } = useSettings();
+  if (settings.maintenanceMode) return <MaintenanceModal />;
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <a href="#main" className="skip-link">

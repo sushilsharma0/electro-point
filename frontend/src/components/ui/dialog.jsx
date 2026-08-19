@@ -17,7 +17,7 @@ export function DialogOverlay({ className, ...props }) {
   );
 }
 
-export function DialogContent({ className, children, ...props }) {
+export function DialogContent({ className, children, hideClose = false, ...props }) {
   return (
     <DialogPortal>
       <DialogOverlay />
@@ -29,14 +29,16 @@ export function DialogContent({ className, children, ...props }) {
         {...props}
       >
         {children}
-        <WithTooltip label="Close">
-          <DialogPrimitive.Close
-            className="absolute right-4 top-4 rounded-md p-1 text-muted hover:text-foreground cursor-pointer focus-visible:ring-2 focus-visible:ring-accent"
-            aria-label="Close"
-          >
-            <X className="h-4 w-4" />
-          </DialogPrimitive.Close>
-        </WithTooltip>
+        {hideClose ? null : (
+          <WithTooltip label="Close">
+            <DialogPrimitive.Close
+              className="absolute right-4 top-4 rounded-md p-1 text-muted hover:text-foreground cursor-pointer focus-visible:ring-2 focus-visible:ring-accent"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" />
+            </DialogPrimitive.Close>
+          </WithTooltip>
+        )}
       </DialogPrimitive.Content>
     </DialogPortal>
   );

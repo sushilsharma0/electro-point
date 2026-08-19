@@ -113,4 +113,5 @@ export const DEFAULT_SETTINGS = {
     heroAutoplayMs: 6000,
   },
   heroProducts: [],
+  maintenanceMode: false,
 };

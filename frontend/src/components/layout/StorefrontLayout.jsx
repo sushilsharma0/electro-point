@@ -7,8 +7,13 @@ import { CompareBar } from '@/components/product/CompareBar';
 import { CartDrawer } from '@/components/cart/CartDrawer';
 import { StorefrontOutletFallback } from '@/components/loading/RouteFallback';
 import { StorefrontBreadcrumbs } from '@/components/layout/StorefrontBreadcrumbs';
+import { MaintenanceModal } from '@/components/layout/MaintenanceModal';
+import { useSettings } from '@/hooks/useCatalog';
 
 export function StorefrontLayout() {
+  const { settings } = useSettings();
+  if (settings.maintenanceMode) return <MaintenanceModal />;
+
   return (
     <div className="flex min-h-screen flex-col">
       <a href="#main" className="skip-link">

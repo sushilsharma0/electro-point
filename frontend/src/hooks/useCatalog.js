@@ -12,7 +12,8 @@ export function useSettings() {
         return DEFAULT_SETTINGS;
       }
     },
-    staleTime: 5 * 60_000,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
     retry: false,
   });
 
