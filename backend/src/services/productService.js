@@ -149,15 +149,35 @@ export async function compare(ids) {
 export async function adminList(query) {
   const { page, limit, skip } = parsePagination(query, { defaultLimit: 20 });
   const filter = {};
+  const and = [];
+
   if (query.status) filter.status = query.status;
   if (query.q) {
-    filter.$or = [
-      { name: new RegExp(query.q, 'i') },
-      { sku: new RegExp(query.q, 'i') },
-      { brand: new RegExp(query.q, 'i') },
-    ];
+    and.push({
+      $or: [
+        { name: new RegExp(query.q, 'i') },
+        { sku: new RegExp(query.q, 'i') },
+        { brand: new RegExp(query.q, 'i') },
+      ],
+    });
   }
-  if (query.category) filter.category = query.category;
+  if (query.category) {
+    and.push({ $or: [{ category: query.category }, { subcategory: query.category }] });
+  }
+  if (query.stock === 'out') {
+    filter.$expr = { $lte: [{ $subtract: ['$stock', { $ifNull: ['$reservedStock', 0] }] }, 0] };
+  } else if (query.stock === 'low') {
+    filter.$expr = {
+      $and: [
+        { $gt: [{ $subtract: ['$stock', { $ifNull: ['$reservedStock', 0] }] }, 0] },
+        { $lte: [{ $subtract: ['$stock', { $ifNull: ['$reservedStock', 0] }] }, { $ifNull: ['$lowStockThreshold', 5] }] },
+      ],
+    };
+  } else if (query.stock === 'in') {
+    filter.$expr = { $gt: [{ $subtract: ['$stock', { $ifNull: ['$reservedStock', 0] }] }, 0] };
+  }
+  if (and.length) filter.$and = and;
+
   const [items, total] = await Promise.all([
     Product.find(filter).sort({ updatedAt: -1 }).skip(skip).limit(limit).populate('category', 'name slug').lean(),
     Product.countDocuments(filter),

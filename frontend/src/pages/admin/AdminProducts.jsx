@@ -15,13 +15,34 @@ import { Seo } from '@/components/Seo';
 import { toast } from 'sonner';
 import { ProductNameCell } from '@/components/product/ProductThumb';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useDebounce } from '@/hooks/useMedia';
+
+const FILTER_SELECT =
+  'h-10 rounded-md border border-border bg-surface px-3 text-sm';
 
 export function AdminProductsPage() {
   const nav = useNavigate();
   const [q, setQ] = useState('');
+  const [status, setStatus] = useState('');
+  const [category, setCategory] = useState('');
+  const [stock, setStock] = useState('');
   const [pendingDelete, setPendingDelete] = useState(null);
-  const query = useQuery({ queryKey: ['admin-products', q], queryFn: () => adminApi.products({ q, limit: 50 }) });
+  const term = useDebounce(q, 250);
+  const cats = useQuery({ queryKey: ['admin-cats'], queryFn: () => adminApi.categories() });
+  const query = useQuery({
+    queryKey: ['admin-products', term, status, category, stock],
+    queryFn: () =>
+      adminApi.products({
+        q: term || undefined,
+        status: status || undefined,
+        category: category || undefined,
+        stock: stock || undefined,
+        limit: 50,
+      }),
+  });
   const products = listFrom(query.data);
+  const categories = flattenCategories(listFrom(cats.data));
+  const filtersOn = Boolean(status || category || stock || q);
   const del = useMutation({
     mutationFn: adminApi.deleteProduct,
     onSuccess: () => {
@@ -32,7 +53,7 @@ export function AdminProductsPage() {
     onError: (e) => toast.error(e.message),
   });
 
-  if (query.isLoading) return null;
+  if (query.isLoading && !query.data) return null;
 
   return (
     <div>
@@ -43,7 +64,49 @@ export function AdminProductsPage() {
           <Link to="/admin/products/new">New product</Link>
         </Button>
       </div>
-      <Input className="my-4 max-w-sm" placeholder="Search" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search products" />
+      <div className="my-4 flex flex-wrap items-center gap-3">
+        <Input
+          className="max-w-sm"
+          placeholder="Search"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          aria-label="Search products"
+        />
+        <select className={FILTER_SELECT} value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Filter by status">
+          <option value="">All statuses</option>
+          <option value="published">Published</option>
+          <option value="draft">Draft</option>
+          <option value="archived">Archived</option>
+        </select>
+        <select className={FILTER_SELECT} value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Filter by category">
+          <option value="">All categories</option>
+          {categories.map((c) => (
+            <option key={c._id} value={c._id}>
+              {c.parent ? `— ${c.name}` : c.name}
+            </option>
+          ))}
+        </select>
+        <select className={FILTER_SELECT} value={stock} onChange={(e) => setStock(e.target.value)} aria-label="Filter by stock">
+          <option value="">All stock</option>
+          <option value="in">In stock</option>
+          <option value="low">Low stock</option>
+          <option value="out">Out of stock</option>
+        </select>
+        {filtersOn ? (
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => {
+              setQ('');
+              setStatus('');
+              setCategory('');
+              setStock('');
+            }}
+          >
+            Clear
+          </Button>
+        ) : null}
+      </div>
       <Table>
         <TableHeader>
           <TableRow>
@@ -56,7 +119,8 @@ export function AdminProductsPage() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {products.map((p) => (
+          {products.length ? (
+            products.map((p) => (
             <TableRow
               key={p._id}
               className="cursor-pointer"
@@ -83,7 +147,14 @@ export function AdminProductsPage() {
                 </Button>
               </TableCell>
             </TableRow>
-          ))}
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={6} className="py-10 text-center text-muted">
+                No products match these filters.
+              </TableCell>
+            </TableRow>
+          )}
         </TableBody>
       </Table>
       <ConfirmDeleteDialog
