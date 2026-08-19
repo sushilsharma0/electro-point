@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { catalogApi, listFrom } from '@/lib/api';
 import { useCompareStore } from '@/store/compare';
 import { formatNpr } from '@/lib/money';
-import { productImage } from '@/lib/product';
+import { productImage, stockLabel } from '@/lib/product';
 import { Button } from '@/components/ui/button';
 import { Container } from '@/components/layout/Container';
 import { Seo } from '@/components/Seo';
@@ -63,7 +63,7 @@ export function ComparePage() {
               <SpecRow label="Brand" values={products.map((p) => p.brand)} />
               <SpecRow label="Rating" values={products.map((p) => (p.ratingAvg ? Number(p.ratingAvg).toFixed(1) : '—'))} />
               <SpecRow label="Warranty" values={products.map((p) => p.warranty || '—')} />
-              <SpecRow label="Stock" values={products.map((p) => ((p.stock || 0) - (p.reservedStock || 0) > 0 ? 'In stock' : 'Out of stock'))} />
+              <SpecRow label="Stock" values={products.map((p) => stockLabel(p).text)} />
               {groups.map((row) => (
                 <SpecRow key={row.label} label={row.label} values={row.values} />
               ))}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Minus, Plus } from 'lucide-react';
 import { adminApi, listFrom } from '@/lib/api';
 import { formatNpr } from '@/lib/money';
 import { Button } from '@/components/ui/button';
@@ -271,51 +271,54 @@ export function AdminCustomersPage() {
 }
 
 export function AdminInventoryPage() {
+  const qc = useQueryClient();
   const q = useQuery({ queryKey: ['admin-inventory'], queryFn: () => adminApi.inventory({ limit: 50 }) });
-  const rows = listFrom(q.data);
+  const products = listFrom(q.data);
+  const rows = flattenInventory(products);
   const [reason, setReason] = useState('manual');
-  const [qty, setQty] = useState(0);
-  const [productId, setProductId] = useState('');
   const mut = useMutation({
     mutationFn: adminApi.adjustInventory,
     onSuccess: () => {
       q.refetch();
-      toast.success('Stock adjusted');
+      qc.invalidateQueries({ queryKey: ['admin-products'] });
+      qc.invalidateQueries({ queryKey: ['products'] });
+      toast.success('Stock updated');
     },
     onError: (e) => toast.error(e.message),
   });
+
+  const adjust = (row, delta) => {
+    mut.mutate({
+      productId: row.productId,
+      variantId: row.variantId || undefined,
+      qtyDelta: delta,
+      reason: delta > 0 ? 'Increase stock' : 'Decrease stock',
+      type: delta > 0 ? (reason === 'restock' ? 'restock' : 'manual') : reason === 'correction' ? 'correction' : 'manual',
+    });
+  };
+
   if (q.isLoading) return null;
   return (
     <div>
       <Seo title="Inventory" noindex />
-      <h1 className="font-display text-2xl font-semibold">Inventory</h1>
-      <form
-        className="my-6 flex flex-wrap items-end gap-3"
-        onSubmit={(e) => {
-          e.preventDefault();
-          mut.mutate({ productId, qtyDelta: Number(qty), reason, type: reason === 'restock' || reason === 'refund' || reason === 'correction' ? reason : 'manual' });
-        }}
-      >
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <h1 className="font-display text-2xl font-semibold">Inventory</h1>
         <div>
-          <Label htmlFor="pid">Product ID</Label>
-          <Input id="pid" className="mt-1" value={productId} onChange={(e) => setProductId(e.target.value)} required />
-        </div>
-        <div>
-          <Label htmlFor="qty">Qty delta</Label>
-          <Input id="qty" type="number" className="mt-1" value={qty} onChange={(e) => setQty(e.target.value)} required />
-        </div>
-        <div>
-          <Label htmlFor="reason">Reason</Label>
-          <select id="reason" className="mt-1 h-10 rounded-md border border-border bg-surface px-3" value={reason} onChange={(e) => setReason(e.target.value)}>
+          <Label htmlFor="inv-reason">Reason</Label>
+          <select
+            id="inv-reason"
+            className="mt-1 h-10 rounded-md border border-border bg-surface px-3 text-sm"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+          >
             <option value="manual">Manual</option>
             <option value="restock">Restock</option>
-            <option value="refund">Refund</option>
             <option value="correction">Correction</option>
           </select>
         </div>
-        <Button type="submit">Adjust</Button>
-      </form>
-      <Table>
+      </div>
+      <p className="mt-2 text-sm text-muted">Use + and − on a row to change stock. Available is stock minus reserved orders.</p>
+      <Table className="mt-6">
         <TableHeader>
           <TableRow>
             <TableHead>Product</TableHead>
@@ -325,20 +328,90 @@ export function AdminInventoryPage() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {rows.map((r) => (
-            <TableRow key={r._id}>
-              <TableCell>
-                <ProductNameCell product={r} name={r.name || r.product?.name} to={r._id ? `/admin/products/${r._id}` : undefined} />
-              </TableCell>
-              <TableCell className="tabular">{r.stock}</TableCell>
-              <TableCell className="tabular">{r.reservedStock}</TableCell>
-              <TableCell className="tabular">{(r.stock || 0) - (r.reservedStock || 0)}</TableCell>
-            </TableRow>
-          ))}
+          {rows.map((r) => {
+            const busy = mut.isPending && mut.variables?.productId === r.productId && String(mut.variables?.variantId || '') === String(r.variantId || '');
+            const canDecrease = r.stock - 1 >= (r.reservedStock || 0);
+            return (
+              <TableRow key={r.key}>
+                <TableCell>
+                  <ProductNameCell
+                    product={r.product}
+                    name={r.label}
+                    to={r.productId ? `/admin/products/${r.productId}` : undefined}
+                  />
+                </TableCell>
+                <TableCell>
+                  <div className="inline-flex items-center border border-border">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      aria-label={`Decrease stock for ${r.label}`}
+                      disabled={!canDecrease || mut.isPending}
+                      onClick={() => adjust(r, -1)}
+                    >
+                      <Minus />
+                    </Button>
+                    <span className="w-10 text-center text-sm tabular">{busy ? '…' : r.stock}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      aria-label={`Increase stock for ${r.label}`}
+                      disabled={mut.isPending}
+                      onClick={() => adjust(r, 1)}
+                    >
+                      <Plus />
+                    </Button>
+                  </div>
+                </TableCell>
+                <TableCell className="tabular">{r.reservedStock}</TableCell>
+                <TableCell className="tabular">{r.available}</TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>
   );
+}
+
+function flattenInventory(products) {
+  const rows = [];
+  for (const p of products) {
+    if (p.variants?.length) {
+      for (const v of p.variants) {
+        const stock = Number(v.stock || 0);
+        const reservedStock = Number(v.reservedStock || 0);
+        rows.push({
+          key: `${p._id}-${v._id}`,
+          productId: p._id,
+          variantId: v._id,
+          product: p,
+          label: v.name ? `${p.name} · ${v.name}` : p.name,
+          stock,
+          reservedStock,
+          available: Math.max(0, stock - reservedStock),
+        });
+      }
+    } else {
+      const stock = Number(p.stock || 0);
+      const reservedStock = Number(p.reservedStock || 0);
+      rows.push({
+        key: String(p._id),
+        productId: p._id,
+        variantId: null,
+        product: p,
+        label: p.name,
+        stock,
+        reservedStock,
+        available: Math.max(0, stock - reservedStock),
+      });
+    }
+  }
+  return rows;
 }
 
 export function AdminCouponsPage() {

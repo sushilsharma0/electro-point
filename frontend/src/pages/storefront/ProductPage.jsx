@@ -73,9 +73,15 @@ export function ProductPage() {
 
   const variant = (product?.variants || []).find((v) => String(v._id || v.id) === String(variantId));
   const stockItem = variant || product;
-  const inStock = product ? availableStock(stockItem) > 0 : false;
+  const avail = product ? availableStock(stockItem) : 0;
+  const inStock = avail > 0;
   const wished = ids.has(String(id));
   const reviewList = listFrom(reviews.data);
+
+  useEffect(() => {
+    if (!avail) return;
+    setQty((q) => Math.min(q, avail));
+  }, [avail]);
 
   if (query.isLoading) {
     return (
@@ -115,8 +121,20 @@ export function ProductPage() {
           <Button type="button" variant="ghost" size="icon" aria-label="Decrease quantity" onClick={() => setQty((q) => Math.max(1, q - 1))}>
             <Minus className="h-4 w-4" />
           </Button>
-          <Input id="qty" className="h-10 w-12 border-0 text-center" value={qty} onChange={(e) => setQty(Math.max(1, Number(e.target.value) || 1))} />
-          <Button type="button" variant="ghost" size="icon" aria-label="Increase quantity" onClick={() => setQty((q) => q + 1)}>
+          <Input
+            id="qty"
+            className="h-10 w-12 border-0 text-center"
+            value={qty}
+            onChange={(e) => setQty(Math.max(1, Math.min(avail || 1, Number(e.target.value) || 1)))}
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="Increase quantity"
+            disabled={!inStock || qty >= avail}
+            onClick={() => setQty((q) => Math.min(avail, q + 1))}
+          >
             <Plus className="h-4 w-4" />
           </Button>
         </div>

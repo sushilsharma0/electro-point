@@ -2,13 +2,14 @@ import { Minus, Plus, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { formatNpr } from '@/lib/money';
-import { productImage, variantLabel } from '@/lib/product';
+import { productImage, variantLabel, availableStock } from '@/lib/product';
 
 export function CartItem({ item, onQty, onRemove, compact = false }) {
   const product = item.product || item;
   const line = item.lineTotalPaisa ?? item.priceSnapshotPaisa * item.qty;
   const err = item.error || item.stockError;
   const thumb = compact ? 'h-16 w-16' : 'h-24 w-24';
+  const maxQty = Number(item.available ?? availableStock(item.variant || product) || item.qty || 1);
 
   return (
     <article className="flex gap-4 border-b border-border py-4">
@@ -34,7 +35,7 @@ export function CartItem({ item, onQty, onRemove, compact = false }) {
               <Minus className="h-3.5 w-3.5" />
             </Button>
             <span className="w-8 text-center text-sm tabular">{item.qty}</span>
-            <Button type="button" variant="ghost" size="icon" className="h-8 w-8" aria-label="Increase quantity" onClick={() => onQty(item.qty + 1)}>
+            <Button type="button" variant="ghost" size="icon" className="h-8 w-8" aria-label="Increase quantity" disabled={item.qty >= maxQty} onClick={() => onQty(Math.min(maxQty, item.qty + 1))}>
               <Plus className="h-3.5 w-3.5" />
             </Button>
           </div>

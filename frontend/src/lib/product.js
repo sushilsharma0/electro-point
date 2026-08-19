@@ -28,8 +28,17 @@ export function productHoverImage(product) {
 }
 
 export function availableStock(item) {
-  const stock = Number(item?.stock ?? 0);
-  const reserved = Number(item?.reservedStock ?? 0);
+  if (!item) return 0;
+  if (Array.isArray(item.variants) && item.variants.length) {
+    const fromVariants = item.variants.reduce((sum, v) => sum + unitAvailable(v), 0);
+    if (fromVariants > 0) return fromVariants;
+  }
+  return unitAvailable(item);
+}
+
+function unitAvailable(row) {
+  const stock = Number(row?.stock ?? 0);
+  const reserved = Number(row?.reservedStock ?? 0);
   return Math.max(0, stock - reserved);
 }
 
@@ -37,8 +46,9 @@ export function stockLabel(item) {
   const avail = availableStock(item);
   const threshold = Number(item?.lowStockThreshold ?? 5);
   if (avail <= 0) return { text: 'Out of stock', tone: 'danger' };
-  if (avail <= threshold) return { text: `Low stock — ${avail} left`, tone: 'warning' };
-  return { text: 'In stock', tone: 'success' };
+  if (avail === 1) return { text: '1 left', tone: 'warning' };
+  if (avail <= threshold) return { text: `${avail} left`, tone: 'warning' };
+  return { text: `${avail} in stock`, tone: 'success' };
 }
 
 export function productBadge(product) {
