@@ -9,7 +9,7 @@ export function CartItem({ item, onQty, onRemove, compact = false }) {
   const line = item.lineTotalPaisa ?? item.priceSnapshotPaisa * item.qty;
   const err = item.error || item.stockError;
   const thumb = compact ? 'h-16 w-16' : 'h-24 w-24';
-  const maxQty = Number(item.available ?? availableStock(item.variant || product) || item.qty || 1);
+  const maxQty = Math.max(1, Number(item.available ?? availableStock(item.variant || product) ?? item.qty ?? 1));
 
   return (
     <article className="flex gap-4 border-b border-border py-4">
