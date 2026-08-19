@@ -17,6 +17,8 @@ import { OrderItemList } from '@/components/order/OrderItemList';
 import { ProductNameCell } from '@/components/product/ProductThumb';
 import { AdminShipmentForm, ORDER_STATUSES } from '@/components/order/AdminShipmentForm';
 import { HeroProductPicker } from '@/components/admin/HeroProductPicker';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { variantLabel } from '@/lib/product';
 
 export function AdminCategoriesPage() {
   const qc = useQueryClient();
@@ -274,8 +276,8 @@ export function AdminInventoryPage() {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['admin-inventory'], queryFn: () => adminApi.inventory({ limit: 50 }) });
   const products = listFrom(q.data);
-  const rows = flattenInventory(products);
   const [reason, setReason] = useState('manual');
+  const [picked, setPicked] = useState({});
   const mut = useMutation({
     mutationFn: adminApi.adjustInventory,
     onSuccess: () => {
@@ -287,10 +289,18 @@ export function AdminInventoryPage() {
     onError: (e) => toast.error(e.message),
   });
 
-  const adjust = (row, delta) => {
+  const variantFor = (product) => {
+    const variants = product.variants || [];
+    if (!variants.length) return null;
+    const id = picked[String(product._id)] || String(variants[0]._id);
+    return variants.find((v) => String(v._id) === String(id)) || variants[0];
+  };
+
+  const adjust = (product, delta) => {
+    const variant = variantFor(product);
     mut.mutate({
-      productId: row.productId,
-      variantId: row.variantId || undefined,
+      productId: product._id,
+      variantId: variant?._id || undefined,
       qtyDelta: delta,
       reason: delta > 0 ? 'Increase stock' : 'Decrease stock',
       type: delta > 0 ? (reason === 'restock' ? 'restock' : 'manual') : reason === 'correction' ? 'correction' : 'manual',
@@ -317,28 +327,59 @@ export function AdminInventoryPage() {
           </select>
         </div>
       </div>
-      <p className="mt-2 text-sm text-muted">Use + and − on a row to change stock. Available is stock minus reserved orders.</p>
+      <p className="mt-2 text-sm text-muted">Pick a variant, then use + and − to change that variant’s stock.</p>
       <Table className="mt-6">
         <TableHeader>
           <TableRow>
             <TableHead>Product</TableHead>
+            <TableHead>Variant</TableHead>
             <TableHead>Stock</TableHead>
             <TableHead>Reserved</TableHead>
             <TableHead>Available</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {rows.map((r) => {
-            const busy = mut.isPending && mut.variables?.productId === r.productId && String(mut.variables?.variantId || '') === String(r.variantId || '');
-            const canDecrease = r.stock - 1 >= (r.reservedStock || 0);
+          {products.map((product) => {
+            const variants = product.variants || [];
+            const variant = variantFor(product);
+            const target = variant || product;
+            const stock = Number(target.stock || 0);
+            const reservedStock = Number(target.reservedStock || 0);
+            const available = Math.max(0, stock - reservedStock);
+            const busy =
+              mut.isPending &&
+              String(mut.variables?.productId) === String(product._id) &&
+              String(mut.variables?.variantId || '') === String(variant?._id || '');
+            const canDecrease = stock - 1 >= reservedStock;
+            const label = variant ? variantLabel(variant) || 'Variant' : product.name;
             return (
-              <TableRow key={r.key}>
+              <TableRow key={product._id}>
                 <TableCell>
-                  <ProductNameCell
-                    product={r.product}
-                    name={r.label}
-                    to={r.productId ? `/admin/products/${r.productId}` : undefined}
-                  />
+                  <ProductNameCell product={product} to={`/admin/products/${product._id}`} />
+                </TableCell>
+                <TableCell className="min-w-[12rem]">
+                  {variants.length ? (
+                    <Select
+                      value={String(variant._id)}
+                      onValueChange={(id) => setPicked((cur) => ({ ...cur, [String(product._id)]: id }))}
+                    >
+                      <SelectTrigger className="h-9 min-w-[11rem] max-w-[16rem]" aria-label={`Variant for ${product.name}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {variants.map((v) => {
+                          const avail = Math.max(0, Number(v.stock || 0) - Number(v.reservedStock || 0));
+                          return (
+                            <SelectItem key={v._id} value={String(v._id)}>
+                              {variantLabel(v) || 'Variant'} · {avail} avail
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <span className="text-sm text-muted">—</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   <div className="inline-flex items-center border border-border">
@@ -347,28 +388,28 @@ export function AdminInventoryPage() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
-                      aria-label={`Decrease stock for ${r.label}`}
+                      aria-label={`Decrease stock for ${label}`}
                       disabled={!canDecrease || mut.isPending}
-                      onClick={() => adjust(r, -1)}
+                      onClick={() => adjust(product, -1)}
                     >
                       <Minus />
                     </Button>
-                    <span className="w-10 text-center text-sm tabular">{busy ? '…' : r.stock}</span>
+                    <span className="w-10 text-center text-sm tabular">{busy ? '…' : stock}</span>
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
-                      aria-label={`Increase stock for ${r.label}`}
+                      aria-label={`Increase stock for ${label}`}
                       disabled={mut.isPending}
-                      onClick={() => adjust(r, 1)}
+                      onClick={() => adjust(product, 1)}
                     >
                       <Plus />
                     </Button>
                   </div>
                 </TableCell>
-                <TableCell className="tabular">{r.reservedStock}</TableCell>
-                <TableCell className="tabular">{r.available}</TableCell>
+                <TableCell className="tabular">{reservedStock}</TableCell>
+                <TableCell className="tabular">{available}</TableCell>
               </TableRow>
             );
           })}
@@ -376,42 +417,6 @@ export function AdminInventoryPage() {
       </Table>
     </div>
   );
-}
-
-function flattenInventory(products) {
-  const rows = [];
-  for (const p of products) {
-    if (p.variants?.length) {
-      for (const v of p.variants) {
-        const stock = Number(v.stock || 0);
-        const reservedStock = Number(v.reservedStock || 0);
-        rows.push({
-          key: `${p._id}-${v._id}`,
-          productId: p._id,
-          variantId: v._id,
-          product: p,
-          label: v.name ? `${p.name} · ${v.name}` : p.name,
-          stock,
-          reservedStock,
-          available: Math.max(0, stock - reservedStock),
-        });
-      }
-    } else {
-      const stock = Number(p.stock || 0);
-      const reservedStock = Number(p.reservedStock || 0);
-      rows.push({
-        key: String(p._id),
-        productId: p._id,
-        variantId: null,
-        product: p,
-        label: p.name,
-        stock,
-        reservedStock,
-        available: Math.max(0, stock - reservedStock),
-      });
-    }
-  }
-  return rows;
 }
 
 export function AdminCouponsPage() {
