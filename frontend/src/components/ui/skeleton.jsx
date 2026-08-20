@@ -288,21 +288,32 @@ export function PaymentConfirmSkeleton() {
   );
 }
 
-export function MegaMenuSkeleton() {
-  return (
-    <div className="absolute left-0 right-0 top-full z-40 border-b border-border bg-surface-elevated shadow-md">
-      <div className="mx-auto grid max-w-store grid-cols-12 gap-0 px-4 py-6 sm:px-6 lg:px-8">
-        <div className="col-span-3 space-y-2">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-8 w-full" />
-          ))}
-        </div>
-        <div className="col-span-9 grid grid-cols-3 gap-4 pl-8">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-5 w-full" />
+export function MegaMenuSkeleton({ nested = false }) {
+  const inner = (
+    <div className="grid grid-cols-12 gap-0">
+      <div className="col-span-3 space-y-2 border-r border-border p-4">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <Skeleton key={i} className="h-8 w-full" />
+        ))}
+      </div>
+      <div className="col-span-6 space-y-3 p-6">
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-6 w-48" />
+        <div className="grid grid-cols-2 gap-2 pt-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-16 w-full" />
           ))}
         </div>
       </div>
+      <div className="col-span-3 p-0">
+        <Skeleton className="h-full min-h-48 w-full rounded-none" />
+      </div>
+    </div>
+  );
+  if (nested) return inner;
+  return (
+    <div className="absolute left-0 right-0 top-full z-40 px-4 pb-5 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-store overflow-hidden border border-border bg-surface-elevated">{inner}</div>
     </div>
   );
 }

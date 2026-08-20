@@ -1,5 +1,5 @@
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { GitCompare, Heart, Menu, ShoppingBag, User } from 'lucide-react';
+import { GitCompare, Heart, Menu, ShoppingBag, User, ChevronDown } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Logo } from '@/components/layout/Logo';
 import { SearchBox } from '@/components/layout/SearchBox';
@@ -77,6 +77,7 @@ export function Navbar() {
   useEffect(() => () => clearTimeout(closeTimer.current), []);
 
   return (
+    <>
     <header className="sticky top-0 z-40 border-b border-border bg-surface">
       <div className="mx-auto flex h-16 max-w-store items-center gap-4 px-4 sm:px-6 lg:px-8">
         <Button type="button" variant="ghost" size="icon" className="lg:hidden" aria-label="Open menu" onClick={() => setMobile(true)}>
@@ -96,7 +97,7 @@ export function Navbar() {
               ref={shopBtnRef}
               type="button"
               className={cn(
-                'relative py-5 text-sm font-medium cursor-pointer after:absolute after:bottom-3 after:left-0 after:h-px after:w-full after:bg-accent after:opacity-0 after:transition-opacity',
+                'relative inline-flex items-center gap-1 py-5 text-sm font-medium cursor-pointer after:absolute after:bottom-3 after:left-0 after:h-px after:w-full after:bg-accent after:opacity-0 after:transition-opacity',
                 mega || loc.pathname.startsWith('/category') || loc.pathname === '/shop' ? 'after:opacity-100' : 'hover:after:opacity-100',
               )}
               aria-expanded={mega}
@@ -114,6 +115,10 @@ export function Navbar() {
               }}
             >
               Shop
+              <ChevronDown
+                className={cn('h-3.5 w-3.5 text-muted transition-transform duration-200', mega && 'rotate-180')}
+                aria-hidden
+              />
             </button>
           </div>
           <NavLink
@@ -200,5 +205,14 @@ export function Navbar() {
       </div>
       <MobileNav open={mobile} onOpenChange={setMobile} categories={categories} />
     </header>
+    {mega ? (
+      <button
+        type="button"
+        aria-label="Close shop menu"
+        className="fixed inset-0 z-30 cursor-pointer bg-foreground/25"
+        onClick={closeMega}
+      />
+    ) : null}
+    </>
   );
 }
