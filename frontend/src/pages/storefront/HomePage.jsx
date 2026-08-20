@@ -2,6 +2,7 @@ import { lazy, Suspense, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowRight, BadgeCheck, Package, Shield, Truck } from 'lucide-react';
+import { cn } from '@/lib/cn';
 import { catalogApi, listFrom } from '@/lib/api';
 import { formatNpr } from '@/lib/money';
 import { idOf, PLACEHOLDER_IMAGES, productImage } from '@/lib/product';
@@ -53,8 +54,10 @@ export function HomePage() {
   const selectedHero = settings.heroProducts || [];
   const heroSlides = selectedHero.length ? selectedHero : featuredList;
   const showHero = settings.homepage?.hero !== false;
-  const categories = listFrom(cats.data).filter((c) => c.showOnHomepage || c.isFeatured).slice(0, 4);
-  const catTiles = categories.length ? categories : listFrom(cats.data).slice(0, 4);
+  const roots = listFrom(cats.data);
+  const preferred = roots.filter((c) => c.showOnHomepage || c.isFeatured);
+  const rest = roots.filter((c) => !c.showOnHomepage && !c.isFeatured);
+  const catTiles = preferred.length ? [...preferred, ...rest] : roots;
   const bestList = listFrom(best.data);
   const newList = listFrom(arrivals.data).filter((p) => p.flags?.isNewArrival);
   const saleProduct = listFrom(sale.data)[0];
@@ -88,7 +91,7 @@ export function HomePage() {
           autoplayMs={settings.homepage?.heroAutoplayMs || 6000}
         />
       ) : null}
-      <CategoryTiles categories={catTiles} />
+      <CategoryTiles categories={catTiles} reduced={reduced} />
       {featuredList.length ? (
         <FeaturedGrid products={featuredList} />
       ) : null}
@@ -118,8 +121,29 @@ export function HomePage() {
   );
 }
 
-function CategoryTiles({ categories }) {
+function CategoryTiles({ categories, reduced = false }) {
   if (!categories.length) return null;
+  const loop = categories.length > 1 && !reduced;
+  const duration = Math.max(28, categories.length * 5);
+
+  const tiles = (copy) =>
+    categories.map((c) => (
+      <Link
+        key={`${c.slug}-${copy}`}
+        to={`/category/${c.slug}`}
+        className="group relative aspect-[4/5] w-[min(70vw,16.5rem)] shrink-0 overflow-hidden border border-border"
+      >
+        <img
+          src={c.image || c.banner || PLACEHOLDER_IMAGES.generic}
+          alt=""
+          className="h-full w-full object-cover transition-opacity duration-200 group-hover:opacity-90"
+        />
+        <span className="absolute inset-x-0 bottom-0 bg-foreground/70 px-4 py-3 text-sm font-medium text-background">
+          {c.name}
+        </span>
+      </Link>
+    ));
+
   return (
     <section className="py-18">
       <Container>
@@ -129,23 +153,14 @@ function CategoryTiles({ categories }) {
             All products
           </Link>
         </div>
-        <div className="mt-8 grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-          {categories.map((c) => (
-            <Link
-              key={c.slug}
-              to={`/category/${c.slug}`}
-              className="group relative aspect-[4/5] overflow-hidden border border-border"
-            >
-              <img
-                src={c.image || c.banner || PLACEHOLDER_IMAGES.generic}
-                alt=""
-                className="h-full w-full object-cover transition-opacity duration-200 group-hover:opacity-90"
-              />
-              <span className="absolute inset-x-0 bottom-0 bg-foreground/70 px-4 py-3 text-sm font-medium text-background">
-                {c.name}
-              </span>
-            </Link>
-          ))}
+        <div className={cn('mt-8', loop ? 'ep-cat-marquee-wrap overflow-hidden' : 'overflow-x-auto')}>
+          <div
+            className={cn('flex', loop && 'ep-cat-marquee w-max')}
+            style={loop ? { '--ep-marquee-duration': `${duration}s` } : undefined}
+          >
+            <div className="flex gap-3 pr-3 lg:gap-4 lg:pr-4">{tiles('a')}</div>
+            {loop ? <div className="flex gap-3 pr-3 lg:gap-4 lg:pr-4">{tiles('b')}</div> : null}
+          </div>
         </div>
       </Container>
     </section>

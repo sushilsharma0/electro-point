@@ -217,6 +217,24 @@
   .ep-tracker-now {
     animation: ep-tracker-pulse 2.4s ease-out infinite;
   }
+
+  @keyframes ep-marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  .ep-cat-marquee {
+    animation: ep-marquee var(--ep-marquee-duration, 40s) linear infinite;
+  }
+
+  .ep-cat-marquee-wrap:hover .ep-cat-marquee,
+  .ep-cat-marquee-wrap:focus-within .ep-cat-marquee {
+    animation-play-state: paused;
+  }
 }
 
 @keyframes ep-spin {
