@@ -8,6 +8,10 @@ import { isSafeKey } from '../utils/sanitize.js';
 
 const PUBLIC_SELECT = '-costPricePaisa -__v';
 
+function flagOn(value) {
+  return value === true || value === 'true' || value === '1';
+}
+
 async function categoryIdsFromSlug(slug) {
   const cat = await Category.findOne({ slug, isActive: true });
   if (!cat) return [];
@@ -15,9 +19,24 @@ async function categoryIdsFromSlug(slug) {
   return [cat._id, ...children.map((c) => c._id)];
 }
 
+async function publicFacets() {
+  const base = { status: 'published' };
+  const [brands, price, categories] = await Promise.all([
+    Product.distinct('brand', base),
+    Product.aggregate([{ $match: base }, { $group: { _id: null, min: { $min: '$pricePaisa' }, max: { $max: '$pricePaisa' } } }]),
+    Category.find({ isActive: true, parent: null }).select('name slug').sort({ displayOrder: 1, name: 1 }).lean(),
+  ]);
+  return {
+    brands: brands.filter(Boolean).sort((a, b) => a.localeCompare(b)),
+    price: { min: price[0]?.min ?? 0, max: price[0]?.max ?? 0 },
+    categories: categories.map((c) => ({ name: c.name, slug: c.slug })),
+  };
+}
+
 export async function listPublic(query) {
   const { page, limit, skip } = parsePagination(query);
   const filter = { status: 'published' };
+  const and = [];
 
   if (query.q) {
     filter.$text = { $search: query.q };
@@ -25,31 +44,54 @@ export async function listPublic(query) {
   if (query.category) {
     if (mongoose.isValidObjectId(query.category)) {
       const children = await Category.find({ parent: query.category, isActive: true }).select('_id');
-      filter.category = { $in: [query.category, ...children.map((c) => c._id)] };
+      and.push({ category: { $in: [query.category, ...children.map((c) => c._id)] } });
     } else {
       const ids = await categoryIdsFromSlug(query.category);
-      if (!ids.length) return paginated({ items: [], total: 0, page, limit });
-      filter.$or = [{ category: { $in: ids } }, { subcategory: { $in: ids } }];
+      if (!ids.length) {
+        const empty = paginated({ items: [], total: 0, page, limit });
+        if (flagOn(query.facets)) empty.availableFilters = await publicFacets();
+        return empty;
+      }
+      and.push({ $or: [{ category: { $in: ids } }, { subcategory: { $in: ids } }] });
     }
   }
-  if (query.brand) filter.brand = query.brand;
-  if (query.minPrice != null || query.maxPrice != null) {
-    filter.pricePaisa = {};
-    if (query.minPrice != null) filter.pricePaisa.$gte = Number(query.minPrice);
-    if (query.maxPrice != null) filter.pricePaisa.$lte = Number(query.maxPrice);
+  if (query.brand) {
+    const brands = String(query.brand)
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (brands.length === 1) and.push({ brand: brands[0] });
+    else if (brands.length > 1) and.push({ brand: { $in: brands } });
   }
-  if (query.inStock === 'true' || query.inStock === '1') {
-    filter.$expr = { $gt: [{ $subtract: ['$stock', '$reservedStock'] }, 0] };
+  const price = {};
+  if (query.minPrice != null && query.minPrice !== '') price.$gte = Number(query.minPrice);
+  if (query.maxPrice != null && query.maxPrice !== '') price.$lte = Number(query.maxPrice);
+  if (Object.keys(price).length) and.push({ pricePaisa: price });
+  if (flagOn(query.inStock)) {
+    and.push({ $expr: { $gt: [{ $subtract: ['$stock', '$reservedStock'] }, 0] } });
   }
-  if (query.featured === 'true') filter['flags.isFeatured'] = true;
-  if (query.bestSeller === 'true') filter['flags.isBestSeller'] = true;
-  if (query.newArrival === 'true') filter['flags.isNewArrival'] = true;
-  if (query.onSale === 'true') filter['flags.isOnSale'] = true;
-
-  const and = [];
+  if (flagOn(query.featured)) and.push({ 'flags.isFeatured': true });
+  if (flagOn(query.bestSeller)) and.push({ 'flags.isBestSeller': true });
+  if (flagOn(query.newArrival)) and.push({ 'flags.isNewArrival': true });
+  if (flagOn(query.onSale)) {
+    and.push({
+      $or: [
+        { 'flags.isOnSale': true },
+        {
+          $expr: {
+            $and: [{ $gt: [{ $ifNull: ['$salePricePaisa', 0] }, 0] }, { $lt: ['$salePricePaisa', '$pricePaisa'] }],
+          },
+        },
+      ],
+    });
+  }
+  if (query.rating != null && query.rating !== '') {
+    const min = Number(query.rating);
+    if (Number.isFinite(min)) and.push({ ratingAvg: { $gte: min } });
+  }
   if (query.filters && typeof query.filters === 'object') {
     for (const [key, value] of Object.entries(query.filters)) {
-      if (!isSafeKey(key)) continue;
+      if (!isSafeKey(key) || value == null || value === '') continue;
       and.push({
         $or: [
           { specGroups: { $elemMatch: { fields: { $elemMatch: { key, value: String(value), filterable: true } } } } },
@@ -95,7 +137,9 @@ export async function listPublic(query) {
       .lean(),
     Product.countDocuments(filter),
   ]);
-  return paginated({ items, total, page, limit });
+  const result = paginated({ items, total, page, limit });
+  if (flagOn(query.facets)) result.availableFilters = await publicFacets();
+  return result;
 }
 
 export async function getBySlug(slug) {

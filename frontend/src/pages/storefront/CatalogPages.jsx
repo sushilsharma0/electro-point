@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { SlidersHorizontal } from 'lucide-react';
+import { Search, ChevronRight, SlidersHorizontal } from 'lucide-react';
 import { catalogApi, listFrom, metaFrom } from '@/lib/api';
+import { nprToPaisa, paisaToNpr } from '@/lib/money';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -12,9 +13,10 @@ import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { ProductGrid } from '@/components/product/ProductGrid';
 import { Container } from '@/components/layout/Container';
 import { Seo } from '@/components/Seo';
-import { Search } from 'lucide-react';
 import { CatalogSkeleton } from '@/components/ui/skeleton';
 import { WithTooltip } from '@/components/ui/tooltip';
+import { useBrands, useCategories } from '@/hooks/useCatalog';
+import { cn } from '@/lib/cn';
 
 const SORTS = [
   { value: 'newest', label: 'Newest' },
@@ -23,6 +25,19 @@ const SORTS = [
   { value: 'price_desc', label: 'Price: high to low' },
   { value: 'rating', label: 'Rating' },
 ];
+
+const PRICE_PRESETS = [
+  { label: 'Under 10,000', min: '', max: 1_000_000 },
+  { label: '10,000 – 25,000', min: 1_000_000, max: 2_500_000 },
+  { label: '25,000 – 50,000', min: 2_500_000, max: 5_000_000 },
+  { label: '50,000 – 1,00,000', min: 5_000_000, max: 10_000_000 },
+  { label: '1,00,000+', min: 10_000_000, max: '' },
+];
+
+function flagParam(sp, key) {
+  const v = sp.get(key);
+  return v === '1' || v === 'true';
+}
 
 export function ShopPage() {
   return <CatalogView title="Shop" canonical="/shop" />;
@@ -61,6 +76,8 @@ export function SearchPage() {
 function CatalogView({ title, description, canonical, categorySlug, banner, emptyTitle, emptyBody, emptyIcon }) {
   const [sp, setSp] = useSearchParams();
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const catsQuery = useCategories();
+  const brandsQuery = useBrands();
   const params = useMemo(() => {
     const filters = {};
     sp.forEach((v, k) => {
@@ -73,11 +90,16 @@ function CatalogView({ title, description, canonical, categorySlug, banner, empt
       brand: sp.get('brand') || undefined,
       minPrice: sp.get('minPrice') || undefined,
       maxPrice: sp.get('maxPrice') || undefined,
-      inStock: sp.get('inStock') === '1' || undefined,
+      inStock: flagParam(sp, 'inStock') || undefined,
+      onSale: flagParam(sp, 'onSale') || undefined,
+      newArrival: flagParam(sp, 'newArrival') || undefined,
+      featured: flagParam(sp, 'featured') || undefined,
+      bestSeller: flagParam(sp, 'bestSeller') || undefined,
       sort: sp.get('sort') || 'newest',
       page: Number(sp.get('page') || 1),
       limit: 24,
       rating: sp.get('rating') || undefined,
+      facets: '1',
       filters,
     };
   }, [sp, categorySlug]);
@@ -89,9 +111,11 @@ function CatalogView({ title, description, canonical, categorySlug, banner, empt
 
   const products = listFrom(query.data);
   const meta = metaFrom(query.data);
-  const available = query.data?.filters || query.data?.availableFilters || {};
-  const brands = available.brands || available.brand || [];
-  const specFilters = available.specFilters || available.specs || [];
+  const available = query.data?.availableFilters || query.data?.filters || meta.filters || {};
+  const categories = listFrom(catsQuery.data).filter((c) => !c.parent);
+  const brands = (Array.isArray(available.brands) && available.brands.length
+    ? available.brands
+    : listFrom(brandsQuery.data)).map((b) => (typeof b === 'string' ? b : b.name)).filter(Boolean);
 
   const setParam = (key, value) => {
     const next = new URLSearchParams(sp);
@@ -101,16 +125,26 @@ function CatalogView({ title, description, canonical, categorySlug, banner, empt
     setSp(next);
   };
 
-  const filterForm = (
-    <FilterForm
-      params={params}
-      brands={Array.isArray(brands) ? brands : []}
-      specFilters={Array.isArray(specFilters) ? specFilters : []}
-      setParam={setParam}
-      sp={sp}
-      setSp={setSp}
-    />
-  );
+  const clearFilters = () => {
+    const next = new URLSearchParams();
+    if (sp.get('q')) next.set('q', sp.get('q'));
+    if (sp.get('sort')) next.set('sort', sp.get('sort'));
+    setSp(next);
+  };
+
+  const filterKeys = [...sp.keys()].filter((k) => k !== 'q' && k !== 'sort' && k !== 'page');
+  const hasFilters = filterKeys.length > 0;
+
+  const filterProps = {
+    params,
+    brands,
+    categories: categorySlug ? [] : categories,
+    setParam,
+    sp,
+    setSp,
+    hasFilters,
+    onClear: clearFilters,
+  };
 
   if (query.isLoading) return <CatalogSkeleton />;
 
@@ -153,8 +187,10 @@ function CatalogView({ title, description, canonical, categorySlug, banner, empt
             </Select>
           </div>
         </div>
-        <div className="mt-8 grid gap-8 lg:grid-cols-[240px_1fr]">
-          <aside className="hidden lg:block">{filterForm}</aside>
+        <div className="mt-8 grid gap-8 lg:grid-cols-[220px_1fr]">
+          <aside className="hidden lg:block">
+            <FilterForm compact onMore={() => setFiltersOpen(true)} {...filterProps} />
+          </aside>
           <div>
             <ProductGrid
               products={products}
@@ -179,17 +215,83 @@ function CatalogView({ title, description, canonical, categorySlug, banner, empt
         </div>
       </Container>
       <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
-        <SheetContent side="bottom" title="Filters">
-          {filterForm}
+        <SheetContent side="left" title="Filters" className="w-full max-w-sm pt-12">
+          <div className="mb-6 flex items-end justify-between gap-3 pr-8">
+            <div>
+              <h2 className="font-display text-lg font-semibold">Filters</h2>
+              <p className="mt-1 text-sm text-muted">{meta.total} products</p>
+            </div>
+          </div>
+          <FilterForm {...filterProps} />
         </SheetContent>
       </Sheet>
     </>
   );
 }
 
-function FilterForm({ params, brands, specFilters, setParam, sp, setSp }) {
+function FilterForm({
+  params,
+  brands,
+  categories,
+  setParam,
+  sp,
+  setSp,
+  hasFilters,
+  onClear,
+  compact = false,
+  onMore,
+}) {
+  const selectedBrands = (params.brand || '').split(',').map((s) => s.trim()).filter(Boolean);
+  const minNpr = params.minPrice ? String(Math.round(paisaToNpr(params.minPrice))) : '';
+  const maxNpr = params.maxPrice ? String(Math.round(paisaToNpr(params.maxPrice))) : '';
+  const prefix = compact ? 'quick' : 'all';
+  const shownBrands = compact ? brands.slice(0, 4) : brands;
+  const shownCategories = compact ? categories.slice(0, 4) : categories;
+  const shownPresets = compact ? PRICE_PRESETS.slice(0, 3) : PRICE_PRESETS;
+
+  const toggleBrand = (name) => {
+    const next = selectedBrands.includes(name)
+      ? selectedBrands.filter((b) => b !== name)
+      : [...selectedBrands, name];
+    setParam('brand', next.join(','));
+  };
+
+  const setPrice = (min, max) => {
+    const next = new URLSearchParams(sp);
+    if (min === '' || min == null) next.delete('minPrice');
+    else next.set('minPrice', String(min));
+    if (max === '' || max == null) next.delete('maxPrice');
+    else next.set('maxPrice', String(max));
+    next.delete('page');
+    setSp(next);
+  };
+
+  const presetActive = (preset) =>
+    String(params.minPrice || '') === String(preset.min) && String(params.maxPrice || '') === String(preset.max);
+
   return (
     <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+      {hasFilters ? (
+        <Button type="button" variant="ghost" className="h-auto px-0 text-sm text-accent" onClick={onClear}>
+          Clear all filters
+        </Button>
+      ) : null}
+
+      {shownCategories.length ? (
+        <fieldset>
+          <legend className="caption mb-3">Category</legend>
+          {shownCategories.map((c) => (
+            <label key={c.slug} className="mb-2 flex cursor-pointer items-center gap-2 text-sm">
+              <Checkbox
+                checked={params.category === c.slug}
+                onCheckedChange={(v) => setParam('category', v ? c.slug : '')}
+              />
+              {c.name}
+            </label>
+          ))}
+        </fieldset>
+      ) : null}
+
       <fieldset>
         <legend className="caption mb-3">Availability</legend>
         <label className="flex cursor-pointer items-center gap-2 text-sm">
@@ -197,66 +299,112 @@ function FilterForm({ params, brands, specFilters, setParam, sp, setSp }) {
           In stock
         </label>
       </fieldset>
-      <fieldset className="space-y-2">
-        <legend className="caption mb-3">Price (NPR paisa)</legend>
-        <div className="flex gap-2">
-          <div>
-            <Label htmlFor="minPrice">Min</Label>
-            <Input id="minPrice" inputMode="numeric" defaultValue={params.minPrice} onBlur={(e) => setParam('minPrice', e.target.value)} />
-          </div>
-          <div>
-            <Label htmlFor="maxPrice">Max</Label>
-            <Input id="maxPrice" inputMode="numeric" defaultValue={params.maxPrice} onBlur={(e) => setParam('maxPrice', e.target.value)} />
-          </div>
-        </div>
-      </fieldset>
-      <fieldset>
-        <legend className="caption mb-3">Rating</legend>
-        {['4', '3'].map((r) => (
-          <label key={r} className="mb-2 flex cursor-pointer items-center gap-2 text-sm">
-            <Checkbox checked={params.rating === r} onCheckedChange={(v) => setParam('rating', v ? r : '')} />
-            {r}+ stars
+
+      {compact ? (
+        <fieldset>
+          <legend className="caption mb-3">Offers</legend>
+          <label className="flex cursor-pointer items-center gap-2 text-sm">
+            <Checkbox checked={Boolean(params.onSale)} onCheckedChange={(v) => setParam('onSale', v ? '1' : '')} />
+            On sale
           </label>
-        ))}
+        </fieldset>
+      ) : (
+        <fieldset>
+          <legend className="caption mb-3">Offers</legend>
+          <label className="mb-2 flex cursor-pointer items-center gap-2 text-sm">
+            <Checkbox checked={Boolean(params.onSale)} onCheckedChange={(v) => setParam('onSale', v ? '1' : '')} />
+            On sale
+          </label>
+          <label className="mb-2 flex cursor-pointer items-center gap-2 text-sm">
+            <Checkbox checked={Boolean(params.newArrival)} onCheckedChange={(v) => setParam('newArrival', v ? '1' : '')} />
+            New arrivals
+          </label>
+          <label className="mb-2 flex cursor-pointer items-center gap-2 text-sm">
+            <Checkbox checked={Boolean(params.featured)} onCheckedChange={(v) => setParam('featured', v ? '1' : '')} />
+            Featured
+          </label>
+          <label className="flex cursor-pointer items-center gap-2 text-sm">
+            <Checkbox checked={Boolean(params.bestSeller)} onCheckedChange={(v) => setParam('bestSeller', v ? '1' : '')} />
+            Best sellers
+          </label>
+        </fieldset>
+      )}
+
+      <fieldset className="space-y-2">
+        <legend className="caption mb-3">Price (NPR)</legend>
+        <div className="flex flex-col gap-1.5">
+          {shownPresets.map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
+              className={cn(
+                'cursor-pointer px-2 py-1.5 text-left text-sm transition-colors duration-200',
+                presetActive(preset) ? 'bg-muted-bg text-foreground' : 'text-muted hover:bg-muted-bg hover:text-foreground',
+              )}
+              onClick={() => setPrice(preset.min, preset.max)}
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
+        {compact ? null : (
+          <div className="flex gap-2 pt-1">
+            <div>
+              <Label htmlFor={`${prefix}-minPrice`}>Min</Label>
+              <Input
+                id={`${prefix}-minPrice`}
+                key={`min-${params.minPrice || ''}`}
+                inputMode="numeric"
+                placeholder="0"
+                defaultValue={minNpr}
+                onBlur={(e) => setParam('minPrice', e.target.value === '' ? '' : nprToPaisa(e.target.value))}
+              />
+            </div>
+            <div>
+              <Label htmlFor={`${prefix}-maxPrice`}>Max</Label>
+              <Input
+                id={`${prefix}-maxPrice`}
+                key={`max-${params.maxPrice || ''}`}
+                inputMode="numeric"
+                placeholder="Any"
+                defaultValue={maxNpr}
+                onBlur={(e) => setParam('maxPrice', e.target.value === '' ? '' : nprToPaisa(e.target.value))}
+              />
+            </div>
+          </div>
+        )}
       </fieldset>
-      {brands.length ? (
+
+      {compact ? null : (
+        <fieldset>
+          <legend className="caption mb-3">Rating</legend>
+          {['5', '4', '3'].map((r) => (
+            <label key={r} className="mb-2 flex cursor-pointer items-center gap-2 text-sm">
+              <Checkbox checked={String(params.rating) === r} onCheckedChange={(v) => setParam('rating', v ? r : '')} />
+              {r}+ stars
+            </label>
+          ))}
+        </fieldset>
+      )}
+
+      {shownBrands.length ? (
         <fieldset>
           <legend className="caption mb-3">Brand</legend>
-          {brands.slice(0, 12).map((b) => {
-            const name = b.name || b;
-            return (
-              <label key={name} className="mb-2 flex cursor-pointer items-center gap-2 text-sm">
-                <Checkbox checked={params.brand === name} onCheckedChange={(v) => setParam('brand', v ? name : '')} />
-                {name}
-              </label>
-            );
-          })}
+          {shownBrands.map((name) => (
+            <label key={name} className="mb-2 flex cursor-pointer items-center gap-2 text-sm">
+              <Checkbox checked={selectedBrands.includes(name)} onCheckedChange={() => toggleBrand(name)} />
+              {name}
+            </label>
+          ))}
         </fieldset>
       ) : null}
-      {specFilters.map((sf) => (
-        <fieldset key={sf.key}>
-          <legend className="caption mb-3">{sf.label || sf.key}</legend>
-          {(sf.values || []).map((val) => {
-            const k = `filters[${sf.key}]`;
-            const checked = sp.get(k) === String(val);
-            return (
-              <label key={val} className="mb-2 flex cursor-pointer items-center gap-2 text-sm">
-                <Checkbox
-                  checked={checked}
-                  onCheckedChange={(v) => {
-                    const next = new URLSearchParams(sp);
-                    if (v) next.set(k, String(val));
-                    else next.delete(k);
-                    next.delete('page');
-                    setSp(next);
-                  }}
-                />
-                {val}
-              </label>
-            );
-          })}
-        </fieldset>
-      ))}
+
+      {compact && onMore ? (
+        <Button type="button" variant="outline" className="w-full" onClick={onMore}>
+          More
+          <ChevronRight />
+        </Button>
+      ) : null}
     </form>
   );
 }

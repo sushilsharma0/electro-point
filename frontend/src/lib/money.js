@@ -19,6 +19,13 @@ export function paisaToNpr(paisa) {
   return n / 100;
 }
 
+/** NPR rupees → integer paisa */
+export function nprToPaisa(npr) {
+  const n = Number(npr);
+  if (!Number.isFinite(n)) return 0;
+  return Math.round(n * 100);
+}
+
 /** Display NPR from paisa, e.g. NPR 149,999.00 */
 export function formatNpr(paisa, { compact = false } = {}) {
   const rupees = paisaToNpr(paisa);

@@ -4,18 +4,20 @@ import { body, objectId, paginationQuery, params, query } from './common.js';
 export const productListSchema = query({
   q: z.string().trim().max(120).optional(),
   category: z.string().trim().max(80).optional(),
-  brand: z.string().trim().max(80).optional(),
+  brand: z.string().trim().max(400).optional(),
   minPrice: z.coerce.number().int().min(0).optional(),
   maxPrice: z.coerce.number().int().min(0).optional(),
   inStock: z.enum(['true', 'false', '1', '0']).optional(),
   sort: z.enum(['price_asc', 'price_desc', 'newest', 'rating', 'name', 'featured', 'bestseller']).optional(),
   page: paginationQuery.page,
   limit: paginationQuery.limit,
-  featured: z.enum(['true', 'false']).optional(),
-  bestSeller: z.enum(['true', 'false']).optional(),
-  newArrival: z.enum(['true', 'false']).optional(),
-  onSale: z.enum(['true', 'false']).optional(),
-  filters: z.record(z.string()).optional(),
+  featured: z.enum(['true', 'false', '1', '0']).optional(),
+  bestSeller: z.enum(['true', 'false', '1', '0']).optional(),
+  newArrival: z.enum(['true', 'false', '1', '0']).optional(),
+  onSale: z.enum(['true', 'false', '1', '0']).optional(),
+  rating: z.coerce.number().min(1).max(5).optional(),
+  facets: z.enum(['true', 'false', '1', '0']).optional(),
+  filters: z.record(z.coerce.string()).optional(),
 });
 
 export const slugParamsSchema = params({ slug: z.string().trim().min(1).max(120) });
