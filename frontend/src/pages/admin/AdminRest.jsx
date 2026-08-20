@@ -20,6 +20,7 @@ import { HeroProductPicker } from '@/components/admin/HeroProductPicker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { variantLabel } from '@/lib/product';
 import { formatOrderStamp, paymentLabel } from '@/lib/orderTracking';
+import { AdminEmpty, AdminHeader, AdminLoading } from '@/components/admin/AdminChrome';
 
 const EMPTY_CATEGORY = {
   name: '',
@@ -314,12 +315,11 @@ export function AdminOrdersPage() {
   const [status, setStatus] = useState('');
   const q = useQuery({ queryKey: ['admin-orders', status], queryFn: () => adminApi.orders({ status, limit: 50 }) });
   const orders = listFrom(q.data);
-  if (q.isLoading) return null;
+  if (q.isLoading) return <AdminLoading />;
   return (
-    <div>
-      <Seo title="Orders" noindex />
-      <h1 className="font-display text-2xl font-semibold">Orders</h1>
-      <select className="my-4 h-10 rounded-md border border-border bg-surface px-3" value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Filter status">
+    <div className="space-y-6">
+      <AdminHeader title="Orders" description="Fulfillment status is written by staff. Payment status comes from the gateway or COD." />
+      <select className="h-10 rounded-md border border-border bg-surface px-3" value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Filter status">
         <option value="">All statuses</option>
         {ORDER_STATUSES.map((s) => (
           <option key={s} value={s}>
@@ -327,36 +327,43 @@ export function AdminOrdersPage() {
           </option>
         ))}
       </select>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Number</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Progress</TableHead>
-            <TableHead>Total</TableHead>
-            <TableHead>Payment</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {orders.map((o) => (
-            <TableRow key={o._id}>
-              <TableCell>
-                <Link to={`/admin/orders/${o._id}`} className="hover:text-accent">
-                  {o.orderNumber}
-                </Link>
-              </TableCell>
-              <TableCell>
-                <OrderStatusBadge status={o.status} />
-              </TableCell>
-              <TableCell className="min-w-[140px]">
-                <OrderProgressBar status={o.status} />
-              </TableCell>
-              <TableCell className="tabular">{formatNpr(o.totalPaisa)}</TableCell>
-              <TableCell>{o.payment?.method} {o.payment?.status}</TableCell>
+      {orders.length ? (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Number</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Progress</TableHead>
+              <TableHead>Total</TableHead>
+              <TableHead>Payment</TableHead>
+              <TableHead>Placed</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {orders.map((o) => (
+              <TableRow key={o._id}>
+                <TableCell>
+                  <Link to={`/admin/orders/${o._id}`} className="font-medium hover:text-accent">
+                    {o.orderNumber}
+                  </Link>
+                  {o.email ? <p className="text-xs text-muted">{o.email}</p> : null}
+                </TableCell>
+                <TableCell>
+                  <OrderStatusBadge status={o.status} />
+                </TableCell>
+                <TableCell className="min-w-[140px]">
+                  <OrderProgressBar status={o.status} />
+                </TableCell>
+                <TableCell className="tabular">{formatNpr(o.totalPaisa)}</TableCell>
+                <TableCell className="text-sm">{paymentLabel(o)}</TableCell>
+                <TableCell className="text-muted">{formatOrderStamp(o.createdAt)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      ) : (
+        <AdminEmpty title="No orders" body="Checkout will list paid and COD orders here." />
+      )}
     </div>
   );
 }
@@ -388,7 +395,15 @@ export function AdminOrderDetailPage() {
         <section className="border border-border bg-surface p-5">
           <p className="caption">Customer</p>
           <dl className="mt-4 grid gap-4 sm:grid-cols-2">
-            <AdminFact label="Name">{name}</AdminFact>
+            <AdminFact label="Name">
+              {customer?._id ? (
+                <Link to={`/admin/customers/${customer._id}`} className="hover:text-accent">
+                  {name}
+                </Link>
+              ) : (
+                name
+              )}
+            </AdminFact>
             <AdminFact label="Phone">
               {phone ? (
                 <span className="flex items-center gap-2">
@@ -503,7 +518,7 @@ function AdminOrderTotals({ order }) {
   );
 }
 
-export function AdminCustomersPage() {
+function LegacyCustomersPage() {
   const q = useQuery({ queryKey: ['admin-customers'], queryFn: () => adminApi.customers({ limit: 50 }) });
   const customers = listFrom(q.data);
   const mut = useMutation({
@@ -695,7 +710,7 @@ export function AdminInventoryPage() {
   );
 }
 
-export function AdminCouponsPage() {
+function LegacyCouponsPage() {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['admin-coupons'], queryFn: () => adminApi.coupons() });
   const coupons = listFrom(q.data);
@@ -768,7 +783,7 @@ export function AdminCouponsPage() {
   );
 }
 
-export function AdminReviewsPage() {
+function LegacyReviewsPage() {
   const q = useQuery({ queryKey: ['admin-reviews'], queryFn: () => adminApi.reviews({ limit: 50 }) });
   const reviews = listFrom(q.data);
   const mut = useMutation({
@@ -813,7 +828,7 @@ export function AdminReviewsPage() {
   );
 }
 
-export function AdminPaymentsPage() {
+function LegacyPaymentsPage() {
   const q = useQuery({ queryKey: ['admin-payments'], queryFn: () => adminApi.payments({ limit: 50 }) });
   const payments = listFrom(q.data);
   if (q.isLoading) return null;

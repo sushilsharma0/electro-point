@@ -19,7 +19,37 @@ export async function listCustomers(query) {
     User.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
     User.countDocuments(filter),
   ]);
-  return paginated({ items, total, page, limit });
+  const ids = items.map((u) => u._id);
+  const stats = ids.length
+    ? await Order.aggregate([
+        { $match: { user: { $in: ids } } },
+        {
+          $group: {
+            _id: '$user',
+            orders: { $sum: 1 },
+            paidOrders: {
+              $sum: { $cond: [{ $in: ['$status', PAID_ORDER_STATUSES] }, 1, 0] },
+            },
+            spendPaisa: {
+              $sum: { $cond: [{ $in: ['$status', PAID_ORDER_STATUSES] }, '$totalPaisa', 0] },
+            },
+            lastOrderAt: { $max: '$createdAt' },
+          },
+        },
+      ])
+    : [];
+  const byUser = new Map(stats.map((s) => [String(s._id), s]));
+  const withStats = items.map((u) => {
+    const s = byUser.get(String(u._id));
+    return {
+      ...u,
+      orders: s?.orders || 0,
+      paidOrders: s?.paidOrders || 0,
+      spendPaisa: s?.spendPaisa || 0,
+      lastOrderAt: s?.lastOrderAt || null,
+    };
+  });
+  return paginated({ items: withStats, total, page, limit });
 }
 
 export async function getCustomer(id) {

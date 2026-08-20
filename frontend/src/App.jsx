@@ -47,11 +47,12 @@ const AdminProductDetailPage = lazy(() => import('@/pages/admin/AdminProducts').
 const AdminCategoriesPage = lazy(() => import('@/pages/admin/AdminRest').then((m) => ({ default: m.AdminCategoriesPage })));
 const AdminOrdersPage = lazy(() => import('@/pages/admin/AdminRest').then((m) => ({ default: m.AdminOrdersPage })));
 const AdminOrderDetailPage = lazy(() => import('@/pages/admin/AdminRest').then((m) => ({ default: m.AdminOrderDetailPage })));
-const AdminCustomersPage = lazy(() => import('@/pages/admin/AdminRest').then((m) => ({ default: m.AdminCustomersPage })));
+const AdminCustomersPage = lazy(() => import('@/pages/admin/AdminCommerce').then((m) => ({ default: m.AdminCustomersPage })));
+const AdminCustomerDetailPage = lazy(() => import('@/pages/admin/AdminCommerce').then((m) => ({ default: m.AdminCustomerDetailPage })));
 const AdminInventoryPage = lazy(() => import('@/pages/admin/AdminRest').then((m) => ({ default: m.AdminInventoryPage })));
-const AdminCouponsPage = lazy(() => import('@/pages/admin/AdminRest').then((m) => ({ default: m.AdminCouponsPage })));
-const AdminReviewsPage = lazy(() => import('@/pages/admin/AdminRest').then((m) => ({ default: m.AdminReviewsPage })));
-const AdminPaymentsPage = lazy(() => import('@/pages/admin/AdminRest').then((m) => ({ default: m.AdminPaymentsPage })));
+const AdminCouponsPage = lazy(() => import('@/pages/admin/AdminCommerce').then((m) => ({ default: m.AdminCouponsPage })));
+const AdminReviewsPage = lazy(() => import('@/pages/admin/AdminCommerce').then((m) => ({ default: m.AdminReviewsPage })));
+const AdminPaymentsPage = lazy(() => import('@/pages/admin/AdminCommerce').then((m) => ({ default: m.AdminPaymentsPage })));
 const AdminSettingsPage = lazy(() => import('@/pages/admin/AdminRest').then((m) => ({ default: m.AdminSettingsPage })));
 const AdminPagesPage = lazy(() => import('@/pages/admin/AdminPages').then((m) => ({ default: m.AdminPagesPage })));
 const AdminLoginPage = lazy(() => import('@/pages/admin/AdminLoginPage').then((m) => ({ default: m.AdminLoginPage })));
@@ -128,6 +129,7 @@ export default function App() {
           <Route path="orders" element={<AdminOrdersPage />} />
           <Route path="orders/:id" element={<AdminOrderDetailPage />} />
           <Route path="customers" element={<AdminCustomersPage />} />
+          <Route path="customers/:id" element={<AdminCustomerDetailPage />} />
           <Route path="inventory" element={<AdminInventoryPage />} />
           <Route path="coupons" element={<AdminCouponsPage />} />
           <Route path="reviews" element={<AdminReviewsPage />} />
