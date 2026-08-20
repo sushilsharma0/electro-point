@@ -35,14 +35,14 @@ export function HomePage() {
   const { settings } = useSettings();
   const reduced = useReducedMotion();
   const featured = useProductList({ sort: 'featured', limit: 8 }, 'hero');
-  const best = useProductList({ sort: 'bestseller', limit: 4 }, 'best');
-  const arrivals = useProductList({ sort: 'newest', limit: 3 }, 'new');
-  const sale = useProductList({ sort: 'sale', limit: 1 }, 'sale');
+  const best = useProductList({ sort: 'bestseller', limit: 8 }, 'best');
+  const arrivals = useProductList({ newArrival: '1', sort: 'newest', limit: 7 }, 'new');
+  const sale = useProductList({ onSale: '1', limit: 1 }, 'sale');
   const reviews = useQuery({
     queryKey: ['home-reviews'],
     queryFn: async () => {
-      const list = listFrom((await catalogApi.products({ sort: 'rating', limit: 4 })).products || (await catalogApi.products({ limit: 4 })));
-      return list;
+      const payload = await catalogApi.products({ sort: 'rating', limit: 8 });
+      return listFrom(payload);
     },
   });
   const cats = useQuery({ queryKey: ['categories'], queryFn: catalogApi.categories });
@@ -56,7 +56,7 @@ export function HomePage() {
   const categories = listFrom(cats.data).filter((c) => c.showOnHomepage || c.isFeatured).slice(0, 4);
   const catTiles = categories.length ? categories : listFrom(cats.data).slice(0, 4);
   const bestList = listFrom(best.data);
-  const newList = listFrom(arrivals.data);
+  const newList = listFrom(arrivals.data).filter((p) => p.flags?.isNewArrival);
   const saleProduct = listFrom(sale.data)[0];
   const threeProduct = listFrom(showcase.data)[0] || heroSlides[0];
   const brandList = listFrom(brands.data);
@@ -89,6 +89,9 @@ export function HomePage() {
         />
       ) : null}
       <CategoryTiles categories={catTiles} />
+      {featuredList.length ? (
+        <FeaturedGrid products={featuredList} />
+      ) : null}
       {bestList.length ? <BestSellers products={bestList} /> : null}
       <NewArrivals products={newList} />
       {threeProduct ? <Showroom product={threeProduct} reduced={reduced} /> : null}
@@ -103,7 +106,7 @@ export function HomePage() {
           <Container>
             <h2 className="font-display text-h2">Recently viewed</h2>
             <div className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-4">
-              {recent.slice(0, 4).map((p) => (
+              {recent.slice(0, 8).map((p) => (
                 <ProductCard key={idOf(p)} product={p} />
               ))}
             </div>
@@ -149,12 +152,43 @@ function CategoryTiles({ categories }) {
   );
 }
 
+function FeaturedGrid({ products }) {
+  if (!products.length) return null;
+  return (
+    <section className="py-18">
+      <Container>
+        <div className="flex items-end justify-between">
+          <div>
+            <h2 className="font-display text-h2">Featured</h2>
+            <p className="mt-2 text-sm text-muted">Specified hardware, current pricing, official warranty.</p>
+          </div>
+          <Link to="/shop" className="hidden text-sm text-accent hover:underline sm:inline">
+            Shop all
+          </Link>
+        </div>
+        <div className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
+          {products.map((p) => (
+            <ProductCard key={idOf(p)} product={p} />
+          ))}
+        </div>
+      </Container>
+    </section>
+  );
+}
+
 function BestSellers({ products }) {
   return (
     <section className="border-y border-border bg-surface py-24">
       <Container>
-        <h2 className="font-display text-h2">Best sellers</h2>
-        <p className="mt-2 text-sm text-muted">Devices customers actually buy — ranked from orders, not ads.</p>
+        <div className="flex items-end justify-between">
+          <div>
+            <h2 className="font-display text-h2">Best sellers</h2>
+            <p className="mt-2 text-sm text-muted">Devices customers actually buy — ranked from orders, not ads.</p>
+          </div>
+          <Link to="/shop?sort=bestseller" className="hidden text-sm text-accent hover:underline sm:inline">
+            View all
+          </Link>
+        </div>
         <div className="mt-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
           {products.map((p) => (
             <ProductCard key={idOf(p)} product={p} />
@@ -167,11 +201,18 @@ function BestSellers({ products }) {
 
 function NewArrivals({ products }) {
   const [large, ...rest] = products;
+  const stacked = rest.slice(0, 2);
+  const extra = rest.slice(2);
   if (!products.length) return null;
   return (
     <section className="py-24">
       <Container>
-        <h2 className="font-display text-h2">New arrivals</h2>
+        <div className="flex items-end justify-between">
+          <h2 className="font-display text-h2">New arrivals</h2>
+          <Link to="/shop?newArrival=1" className="hidden text-sm text-accent hover:underline sm:inline">
+            View all
+          </Link>
+        </div>
         <div className="mt-8 grid gap-4 lg:grid-cols-2">
           {large ? (
             <Link to={`/product/${large.slug}`} className="group border border-border bg-surface">
@@ -186,7 +227,7 @@ function NewArrivals({ products }) {
             </Link>
           ) : null}
           <div className="flex flex-col gap-4">
-            {rest.slice(0, 2).map((p) => (
+            {stacked.map((p) => (
               <Link key={idOf(p)} to={`/product/${p.slug}`} className="flex flex-1 gap-4 border border-border bg-surface p-4 hover:border-foreground/30">
                 <div className="h-28 w-28 shrink-0 product-stage">
                   <img src={productImage(p)} alt="" className="h-full w-full object-contain p-2" />
@@ -200,6 +241,13 @@ function NewArrivals({ products }) {
             ))}
           </div>
         </div>
+        {extra.length ? (
+          <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {extra.map((p) => (
+              <ProductCard key={idOf(p)} product={p} badgeOverride={{ label: 'New', tone: 'accent' }} />
+            ))}
+          </div>
+        ) : null}
       </Container>
     </section>
   );
@@ -351,7 +399,7 @@ function ReviewsRow({ products }) {
       <Container>
         <h2 className="font-display text-h2">From verified buyers</h2>
         <div className="mt-8 grid gap-6 md:grid-cols-2">
-          {withRating.slice(0, 2).map((p) => (
+          {withRating.slice(0, 4).map((p) => (
             <blockquote key={idOf(p)} className="flex gap-4 border border-border bg-surface p-6">
               <ProductThumb product={p} size="lg" to={`/product/${p.slug}`} />
               <div className="min-w-0">

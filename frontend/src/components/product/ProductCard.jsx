@@ -12,7 +12,7 @@ import { idOf, productBadge, productHoverImage, productImage, availableStock } f
 import { cn } from '@/lib/cn';
 import { WithTooltip } from '@/components/ui/tooltip';
 
-export function ProductCard({ product, onQuickView }) {
+export function ProductCard({ product, onQuickView, badgeOverride }) {
   const [hover, setHover] = useState(false);
   const [added, setAdded] = useState(false);
   const { add } = useCart();
@@ -20,7 +20,7 @@ export function ProductCard({ product, onQuickView }) {
   const nav = useNavigate();
   const id = idOf(product);
   const wished = ids.has(String(id));
-  const badge = productBadge(product);
+  const badge = badgeOverride || productBadge(product);
   const main = productImage(product);
   const second = productHoverImage(product);
   const inStock = availableStock(product) > 0;
