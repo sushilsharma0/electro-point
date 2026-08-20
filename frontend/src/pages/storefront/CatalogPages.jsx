@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Search, ChevronRight, SlidersHorizontal } from 'lucide-react';
@@ -34,6 +34,21 @@ const PRICE_PRESETS = [
   { label: '1,00,000+', min: 10_000_000, max: '' },
 ];
 
+function CategoryBanner({ src, alt }) {
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    setFailed(false);
+  }, [src]);
+  if (!src || failed) return null;
+  return (
+    <div className="border-b border-border bg-product-stage">
+      <div className="mx-auto h-40 max-w-store overflow-hidden md:h-56">
+        <img src={src} alt={alt || ''} className="h-full w-full object-cover" onError={() => setFailed(true)} />
+      </div>
+    </div>
+  );
+}
+
 function flagParam(sp, key) {
   const v = sp.get(key);
   return v === '1' || v === 'true';
@@ -54,7 +69,8 @@ export function CategoryPage() {
       description={category?.seoDescription || category?.description}
       canonical={`/category/${slug}`}
       categorySlug={slug}
-      banner={category?.banner}
+      banner={category?.banner || category?.image || ''}
+      bannerAlt={category?.name || ''}
     />
   );
 }
@@ -73,7 +89,7 @@ export function SearchPage() {
   );
 }
 
-function CatalogView({ title, description, canonical, categorySlug, banner, emptyTitle, emptyBody, emptyIcon }) {
+function CatalogView({ title, description, canonical, categorySlug, banner, bannerAlt, emptyTitle, emptyBody, emptyIcon }) {
   const [sp, setSp] = useSearchParams();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const catsQuery = useCategories();
@@ -155,11 +171,7 @@ function CatalogView({ title, description, canonical, categorySlug, banner, empt
         description={description}
         canonical={canonical}
       />
-      {banner ? (
-        <div className="h-40 overflow-hidden border-b border-border md:h-56">
-          <img src={banner} alt="" className="h-full w-full object-cover" />
-        </div>
-      ) : null}
+      {banner ? <CategoryBanner src={banner} alt={bannerAlt || title} /> : null}
       <Container className="py-10">
         <div className="flex items-end justify-between gap-4">
           <div>

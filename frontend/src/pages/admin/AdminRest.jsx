@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Trash2, Minus, Plus, Copy } from 'lucide-react';
+import { Trash2, Minus, Plus, Copy, Pencil } from 'lucide-react';
 import { adminApi, listFrom } from '@/lib/api';
 import { formatNpr } from '@/lib/money';
 import { Button } from '@/components/ui/button';
@@ -21,27 +21,110 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { variantLabel } from '@/lib/product';
 import { formatOrderStamp, paymentLabel } from '@/lib/orderTracking';
 
+const EMPTY_CATEGORY = {
+  name: '',
+  slug: '',
+  parent: '',
+  isActive: true,
+  isFeatured: false,
+  showOnHomepage: false,
+  banner: '',
+  image: '',
+  description: '',
+};
+
+function flattenCategories(nodes, acc = []) {
+  for (const node of nodes || []) {
+    acc.push(node);
+    if (node.children?.length) flattenCategories(node.children, acc);
+  }
+  return acc;
+}
+
 export function AdminCategoriesPage() {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['admin-categories'], queryFn: () => adminApi.categories() });
   const cats = listFrom(q.data);
-  const [form, setForm] = useState({ name: '', slug: '', parent: '', isActive: true, isFeatured: false, showOnHomepage: false });
+  const flat = flattenCategories(cats);
+  const [editingId, setEditingId] = useState(null);
+  const [form, setForm] = useState(EMPTY_CATEGORY);
+  const editing = editingId ? flat.find((c) => String(c._id) === String(editingId)) : null;
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ['admin-categories'] });
+    qc.invalidateQueries({ queryKey: ['categories'] });
+    qc.invalidateQueries({ queryKey: ['category'] });
+  };
+
   const create = useMutation({
     mutationFn: adminApi.createCategory,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin-categories'] });
+      invalidate();
+      setForm(EMPTY_CATEGORY);
       toast.success('Category created');
+    },
+    onError: (e) => toast.error(e.message),
+  });
+  const update = useMutation({
+    mutationFn: ({ id, body }) => adminApi.updateCategory(id, body),
+    onSuccess: () => {
+      invalidate();
+      toast.success('Category saved');
     },
     onError: (e) => toast.error(e.message),
   });
   const remove = useMutation({
     mutationFn: adminApi.deleteCategory,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin-categories'] });
-      qc.invalidateQueries({ queryKey: ['categories'] });
+      invalidate();
+      if (editingId) {
+        setEditingId(null);
+        setForm(EMPTY_CATEGORY);
+      }
       toast.success('Category deleted');
     },
     onError: (e) => toast.error(e.message),
+  });
+
+  const loadCategory = (node) => {
+    setEditingId(node._id);
+    setForm({
+      name: node.name || '',
+      slug: node.slug || '',
+      parent: node.parent ? String(node.parent) : '',
+      isActive: node.isActive !== false,
+      isFeatured: Boolean(node.isFeatured),
+      showOnHomepage: Boolean(node.showOnHomepage),
+      banner: node.banner || '',
+      image: node.image || '',
+      description: node.description || '',
+    });
+  };
+
+  const applyBanner = async (url, { persist = false } = {}) => {
+    if (!url) return;
+    setForm((cur) => ({ ...cur, banner: url, image: cur.image || url }));
+    if (persist && editingId) {
+      await adminApi.updateCategory(editingId, { banner: url, image: form.image || url });
+      invalidate();
+    }
+  };
+
+  const uploadBanner = async (file) => {
+    try {
+      const res = await adminApi.uploadImage(file);
+      const url = res.url || res.path || res.file?.url;
+      if (!url) throw new Error('Upload did not return a URL');
+      await applyBanner(url, { persist: true });
+      toast.success(editingId ? 'Banner saved' : 'Banner uploaded — save the category to keep it');
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+
+  const payload = () => ({
+    ...form,
+    parent: form.parent || null,
   });
 
   if (q.isLoading) return null;
@@ -51,12 +134,15 @@ export function AdminCategoriesPage() {
       <Seo title="Categories" noindex />
       <div>
         <h1 className="font-display text-2xl font-semibold">Categories</h1>
+        <p className="mt-1 text-sm text-muted">Click a category to edit its banner. The storefront category page uses that image.</p>
         <ul className="mt-4 text-sm">
           {cats.map((c) => (
             <CategoryNode
               key={c._id}
               node={c}
               depth={0}
+              selectedId={editingId}
+              onEdit={loadCategory}
               onDelete={(id) => remove.mutate(id)}
               deletingId={remove.isPending ? remove.variables : null}
             />
@@ -67,13 +153,26 @@ export function AdminCategoriesPage() {
         className="space-y-3"
         onSubmit={(e) => {
           e.preventDefault();
-          create.mutate({
-            ...form,
-            parent: form.parent || null,
-          });
+          if (editingId) update.mutate({ id: editingId, body: payload() });
+          else create.mutate(payload());
         }}
       >
-        <h2 className="font-medium">New category</h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="font-medium">{editingId ? `Edit ${editing?.name || 'category'}` : 'New category'}</h2>
+          {editingId ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setEditingId(null);
+                setForm(EMPTY_CATEGORY);
+              }}
+            >
+              New
+            </Button>
+          ) : null}
+        </div>
         <div>
           <Label htmlFor="cname">Name</Label>
           <Input id="cname" className="mt-1" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
@@ -84,14 +183,69 @@ export function AdminCategoriesPage() {
         </div>
         <div>
           <Label htmlFor="cparent">Parent</Label>
-          <select id="cparent" className="mt-1 h-10 w-full rounded-md border border-border bg-surface px-3" value={form.parent} onChange={(e) => setForm({ ...form, parent: e.target.value })}>
+          <select
+            id="cparent"
+            className="mt-1 h-10 w-full rounded-md border border-border bg-surface px-3"
+            value={form.parent}
+            onChange={(e) => setForm({ ...form, parent: e.target.value })}
+          >
             <option value="">None</option>
-            {cats.map((c) => (
-              <option key={c._id} value={c._id}>
-                {c.name}
-              </option>
-            ))}
+            {flat
+              .filter((c) => String(c._id) !== String(editingId))
+              .map((c) => (
+                <option key={c._id} value={c._id}>
+                  {c.name}
+                </option>
+              ))}
           </select>
+        </div>
+        <div>
+          <Label htmlFor="cbanner">Upload image</Label>
+          <Input
+            id="cbanner"
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/avif"
+            className="mt-1"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) uploadBanner(file);
+              e.target.value = '';
+            }}
+          />
+          <Label htmlFor="cbanner-url" className="mt-3 block">
+            Or paste image link
+          </Label>
+          <Input
+            id="cbanner-url"
+            className="mt-1"
+            type="text"
+            inputMode="url"
+            placeholder="https://example.com/monitors-banner.jpg"
+            value={form.banner}
+            onChange={(e) => {
+              const url = e.target.value;
+              setForm({ ...form, banner: url, image: form.image || url });
+            }}
+          />
+          <p className="mt-1 text-xs text-muted">Use a file upload or an https image URL. Save the category to publish it.</p>
+          {form.banner ? (
+            <div className="relative mt-3 overflow-hidden border border-border product-stage">
+              <img src={form.banner} alt="" className="h-28 w-full object-cover" />
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="absolute right-2 top-2 bg-surface"
+                onClick={() => setForm({ ...form, banner: '', image: form.image === form.banner ? '' : form.image })}
+              >
+                Remove
+              </Button>
+            </div>
+          ) : null}
+        </div>
+        <div>
+          <Label htmlFor="cdesc">Description</Label>
+          <Textarea id="cdesc" className="mt-1" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
         </div>
         <label className="flex items-center justify-between text-sm">
           Active <Switch checked={form.isActive} onCheckedChange={(v) => setForm({ ...form, isActive: v })} />
@@ -102,30 +256,40 @@ export function AdminCategoriesPage() {
         <label className="flex items-center justify-between text-sm">
           Homepage <Switch checked={form.showOnHomepage} onCheckedChange={(v) => setForm({ ...form, showOnHomepage: v })} />
         </label>
-        <Button type="submit">Create</Button>
+        <Button type="submit">{editingId ? 'Save category' : 'Create'}</Button>
       </form>
     </div>
   );
 }
 
-function CategoryNode({ node, depth, onDelete, deletingId }) {
+function CategoryNode({ node, depth, selectedId, onEdit, onDelete, deletingId }) {
+  const selected = String(selectedId) === String(node._id);
   return (
     <li className="border-b border-border">
       <div className="flex items-center justify-between gap-3 py-2" style={{ paddingLeft: depth * 16 }}>
-        <span className="min-w-0 truncate">
-          {node.name} <span className="text-muted">/{node.slug}</span>
-        </span>
-        <Button
+        <button
           type="button"
-          size="icon"
-          variant="ghost"
-          className="h-8 w-8 shrink-0"
-          aria-label={`Delete ${node.name}`}
-          disabled={deletingId === node._id}
-          onClick={() => onDelete(node._id)}
+          className={`min-w-0 truncate text-left cursor-pointer ${selected ? 'text-accent' : 'hover:text-accent'}`}
+          onClick={() => onEdit(node)}
         >
-          <Trash2 />
-        </Button>
+          {node.name} <span className="text-muted">/{node.slug}</span>
+        </button>
+        <div className="flex shrink-0 items-center">
+          <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label={`Edit ${node.name}`} onClick={() => onEdit(node)}>
+            <Pencil />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8"
+            aria-label={`Delete ${node.name}`}
+            disabled={deletingId === node._id}
+            onClick={() => onDelete(node._id)}
+          >
+            <Trash2 />
+          </Button>
+        </div>
       </div>
       {node.children?.length ? (
         <ul>
@@ -134,6 +298,8 @@ function CategoryNode({ node, depth, onDelete, deletingId }) {
               key={ch._id}
               node={ch}
               depth={depth + 1}
+              selectedId={selectedId}
+              onEdit={onEdit}
               onDelete={onDelete}
               deletingId={deletingId}
             />
