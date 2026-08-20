@@ -13,6 +13,7 @@ import {
   Star,
   Ticket,
   Users,
+  FileText,
   Wallet,
 } from 'lucide-react';
 import { Logo } from '@/components/layout/Logo';
@@ -35,6 +36,7 @@ const LINKS = [
   { to: '/admin/coupons', label: 'Coupons', icon: Ticket },
   { to: '/admin/reviews', label: 'Reviews', icon: Star },
   { to: '/admin/payments', label: 'Payments', icon: Wallet },
+  { to: '/admin/pages', label: 'Pages', icon: FileText },
   { to: '/admin/settings', label: 'Settings', icon: Settings },
 ];
 

@@ -881,7 +881,13 @@ export function AdminSettingsPage() {
     >
       <Seo title="Settings" noindex />
       <h1 className="font-display text-2xl font-semibold">Settings</h1>
-      <p className="text-sm text-muted">Payment secrets stay in server environment variables. Only merchant codes and toggles belong here.</p>
+      <p className="text-sm text-muted">
+        Payment secrets stay in server environment variables. Only merchant codes and toggles belong here. Edit About, Terms, Privacy, FAQ, and Contact copy in{' '}
+        <Link to="/admin/pages" className="text-accent hover:underline">
+          Pages
+        </Link>
+        .
+      </p>
       <div>
         <Label htmlFor="storeName">Store name</Label>
         <Input id="storeName" className="mt-1" value={form.storeName || ''} onChange={(e) => setForm({ ...form, storeName: e.target.value })} />

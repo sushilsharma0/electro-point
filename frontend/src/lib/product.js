@@ -113,5 +113,6 @@ export const DEFAULT_SETTINGS = {
     heroAutoplayMs: 6000,
   },
   heroProducts: [],
+  contentPages: {},
   maintenanceMode: false,
 };

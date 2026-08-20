@@ -40,6 +40,94 @@ export const customerUpdateSchema = z.object({
   query: z.record(z.any()).optional().default({}),
 });
 
+const contentFactSchema = z.object({
+  title: z.string().trim().max(120).optional().default(''),
+  body: z.string().trim().max(800).optional().default(''),
+});
+
+const contentSectionSchema = z.object({
+  id: z.string().trim().max(80).optional().default(''),
+  title: z.string().trim().max(160).optional().default(''),
+  body: z.string().max(20000).optional().default(''),
+});
+
+const contentLinkSchema = z.object({
+  label: z.string().trim().max(120).optional().default(''),
+  href: z.string().trim().max(300).optional().default(''),
+});
+
+const contentPagesSchema = z.object({
+  about: z
+    .object({
+      kicker: z.string().max(80).optional(),
+      headline: z.string().max(200).optional(),
+      intro: z.string().max(4000).optional(),
+      bodyTitle: z.string().max(160).optional(),
+      body: z.string().max(20000).optional(),
+      shopLabel: z.string().max(80).optional(),
+      shopHref: z.string().max(300).optional(),
+      contactLabel: z.string().max(80).optional(),
+      contactHref: z.string().max(300).optional(),
+      storeCardTitle: z.string().max(80).optional(),
+      paymentsText: z.string().max(200).optional(),
+      factsTitle: z.string().max(160).optional(),
+      facts: z.array(contentFactSchema).max(8).optional(),
+      policiesTitle: z.string().max(160).optional(),
+      policiesIntro: z.string().max(4000).optional(),
+      policiesLinks: z.array(contentLinkSchema).max(12).optional(),
+      seoTitle: z.string().max(160).optional(),
+      seoDescription: z.string().max(320).optional(),
+    })
+    .optional(),
+  terms: z
+    .object({
+      kicker: z.string().max(80).optional(),
+      title: z.string().max(200).optional(),
+      description: z.string().max(4000).optional(),
+      updated: z.string().max(80).optional(),
+      sections: z.array(contentSectionSchema).max(40).optional(),
+      seoTitle: z.string().max(160).optional(),
+      seoDescription: z.string().max(320).optional(),
+    })
+    .optional(),
+  privacy: z
+    .object({
+      kicker: z.string().max(80).optional(),
+      title: z.string().max(200).optional(),
+      description: z.string().max(4000).optional(),
+      updated: z.string().max(80).optional(),
+      sections: z.array(contentSectionSchema).max(40).optional(),
+      seoTitle: z.string().max(160).optional(),
+      seoDescription: z.string().max(320).optional(),
+    })
+    .optional(),
+  faq: z
+    .object({
+      title: z.string().max(200).optional(),
+      items: z
+        .array(
+          z.object({
+            q: z.string().trim().max(240).optional().default(''),
+            a: z.string().max(8000).optional().default(''),
+          }),
+        )
+        .max(40)
+        .optional(),
+      seoTitle: z.string().max(160).optional(),
+      seoDescription: z.string().max(320).optional(),
+    })
+    .optional(),
+  contact: z
+    .object({
+      kicker: z.string().max(80).optional(),
+      headline: z.string().max(200).optional(),
+      intro: z.string().max(4000).optional(),
+      seoTitle: z.string().max(160).optional(),
+      seoDescription: z.string().max(320).optional(),
+    })
+    .optional(),
+});
+
 export const settingsUpdateSchema = body({
   storeName: z.string().trim().max(80).optional(),
   logo: z.string().optional(),
@@ -124,5 +212,6 @@ export const settingsUpdateSchema = body({
       link: z.string().max(300).optional(),
     })
     .optional(),
+  contentPages: contentPagesSchema.optional(),
   maintenanceMode: z.boolean().optional(),
 });

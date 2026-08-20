@@ -53,6 +53,7 @@ const AdminCouponsPage = lazy(() => import('@/pages/admin/AdminRest').then((m) =
 const AdminReviewsPage = lazy(() => import('@/pages/admin/AdminRest').then((m) => ({ default: m.AdminReviewsPage })));
 const AdminPaymentsPage = lazy(() => import('@/pages/admin/AdminRest').then((m) => ({ default: m.AdminPaymentsPage })));
 const AdminSettingsPage = lazy(() => import('@/pages/admin/AdminRest').then((m) => ({ default: m.AdminSettingsPage })));
+const AdminPagesPage = lazy(() => import('@/pages/admin/AdminPages').then((m) => ({ default: m.AdminPagesPage })));
 const AdminLoginPage = lazy(() => import('@/pages/admin/AdminLoginPage').then((m) => ({ default: m.AdminLoginPage })));
 
 export default function App() {
@@ -131,6 +132,7 @@ export default function App() {
           <Route path="coupons" element={<AdminCouponsPage />} />
           <Route path="reviews" element={<AdminReviewsPage />} />
           <Route path="payments" element={<AdminPaymentsPage />} />
+          <Route path="pages" element={<AdminPagesPage />} />
           <Route path="settings" element={<AdminSettingsPage />} />
         </Route>
       </Routes>

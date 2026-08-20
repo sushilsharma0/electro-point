@@ -74,6 +74,7 @@ const storeSettingsSchema = new mongoose.Schema(
       text: { type: String, default: '' },
       link: { type: String, default: '' },
     },
+    contentPages: { type: mongoose.Schema.Types.Mixed, default: {} },
     maintenanceMode: { type: Boolean, default: false },
   },
   { timestamps: true },

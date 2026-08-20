@@ -11,136 +11,128 @@ import { Seo } from '@/components/Seo';
 import { useSettings } from '@/hooks/useCatalog';
 import { toast } from 'sonner';
 import { WithTooltip } from '@/components/ui/tooltip';
+import { contentVars, interpolate, isSafeHref, sectionAnchor } from '@/lib/contentPages';
+import { RichText } from '@/components/content/RichText';
+import { LegalSection, LegalShell } from '@/components/content/LegalLayout';
 
-const UPDATED = '20 August 2026';
+const FACT_ICONS = [Shield, BadgeCheck, Truck, Package];
 
 export function AboutPage() {
   const { settings } = useSettings();
-  const name = settings.storeName || 'ElectroPoint';
+  const vars = contentVars(settings);
+  const page = settings.contentPages?.about || {};
   const contact = settings.contact || {};
-  const facts = [
-    { icon: Shield, title: 'Official warranty', body: 'Every device is sold with manufacturer warranty. Serial numbers are recorded on paid orders.' },
-    { icon: BadgeCheck, title: 'Authentic stock', body: 'Sourced through authorized channels. Specs on the product page come from the catalog, not slogans.' },
-    { icon: Truck, title: 'Tracked delivery', body: 'Kathmandu express and nationwide standard. Rates and ETAs come from store settings.' },
-    { icon: Package, title: 'Clear orders', body: 'Totals are calculated on the server. Tracking is written by staff when the parcel actually moves.' },
-  ];
+  const facts = (page.facts || []).filter((f) => f.title || f.body);
+  const links = (page.policiesLinks || []).filter((l) => l.label && l.href);
 
   return (
     <>
       <Seo
-        title="About"
-        description={`${name} is a professional electronics retailer in Nepal. Authentic devices, NPR pricing, eSewa, Khalti, and cash on delivery.`}
+        title={interpolate(page.seoTitle || page.headline || 'About', vars)}
+        description={interpolate(page.seoDescription || page.intro, vars)}
         canonical="/about"
       />
       <section className="border-b border-border bg-surface">
         <Container className="max-w-3xl py-16 lg:py-24">
-          <p className="caption">About</p>
-          <h1 className="mt-3 font-display text-h1">Built for people who read the spec sheet</h1>
-          <p className="mt-6 text-muted">
-            {name} is a professional electronics store in Nepal. We sell authentic consumer devices with official warranty,
-            prices in NPR, and checkout through eSewa, Khalti, or cash on delivery.
-          </p>
+          {page.kicker ? <p className="caption">{interpolate(page.kicker, vars)}</p> : null}
+          <h1 className="mt-3 font-display text-h1">{interpolate(page.headline, vars)}</h1>
+          <RichText text={page.intro} vars={vars} className="mt-6 space-y-3 text-muted" />
         </Container>
       </section>
 
       <Container className="grid gap-12 py-16 lg:grid-cols-12 lg:gap-16 lg:py-24">
         <div className="lg:col-span-7">
-          <h2 className="font-display text-h2">What we sell</h2>
-          <p className="mt-4 text-muted">
-            Smartphones, laptops, desktops, monitors, audio, cameras, and accessories — specified clearly so you can
-            compare before you buy. Categories, product photography, and homepage merchandising are controlled by the
-            store admin. We do not invent stock, reviews, or analytics. If a number appears in the dashboard, it comes
-            from the database.
-          </p>
-          <p className="mt-4 text-muted">
-            Browse without an account. Sign in to check out, save a wishlist, write a review, or track an order. Compare
-            up to four devices side by side using catalog specs: processor, memory, panel, battery, warranty.
-          </p>
+          {page.bodyTitle ? <h2 className="font-display text-h2">{interpolate(page.bodyTitle, vars)}</h2> : null}
+          <RichText text={page.body} vars={vars} className="mt-4 space-y-4 text-muted" />
           <div className="mt-8 flex flex-wrap gap-3">
-            <Button asChild>
-              <Link to="/shop">Shop devices</Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link to="/contact">Contact</Link>
-            </Button>
+            {page.shopLabel && page.shopHref ? (
+              <PageButton href={page.shopHref} label={interpolate(page.shopLabel, vars)} />
+            ) : null}
+            {page.contactLabel && page.contactHref ? (
+              <PageButton href={page.contactHref} label={interpolate(page.contactLabel, vars)} variant="outline" />
+            ) : null}
           </div>
         </div>
         <aside className="border border-border bg-surface p-6 lg:col-span-5">
-          <p className="caption">Store</p>
+          <p className="caption">{interpolate(page.storeCardTitle || 'Store', vars)}</p>
           <dl className="mt-4 space-y-4 text-sm">
-            <div>
-              <dt className="text-muted">Location</dt>
-              <dd className="mt-1 flex gap-2">
-                <WithTooltip label="Address">
-                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted" />
-                </WithTooltip>
-                <span>{contact.address || 'Kathmandu, Nepal'}</span>
-              </dd>
-            </div>
-            <div>
-              <dt className="text-muted">Email</dt>
-              <dd className="mt-1">
-                <a className="text-accent hover:underline" href={`mailto:${contact.email}`}>
-                  {contact.email}
-                </a>
-              </dd>
-            </div>
-            <div>
-              <dt className="text-muted">Phone</dt>
-              <dd className="mt-1">
-                <a className="text-accent hover:underline" href={`tel:${contact.phone}`}>
-                  {contact.phone}
-                </a>
-              </dd>
-            </div>
-            <div>
-              <dt className="text-muted">Payments</dt>
-              <dd className="mt-1">eSewa · Khalti · Cash on delivery · Amounts in NPR</dd>
-            </div>
+            {contact.address ? (
+              <div>
+                <dt className="text-muted">Location</dt>
+                <dd className="mt-1 flex gap-2">
+                  <WithTooltip label="Address">
+                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted" />
+                  </WithTooltip>
+                  <span>{contact.address}</span>
+                </dd>
+              </div>
+            ) : null}
+            {contact.email ? (
+              <div>
+                <dt className="text-muted">Email</dt>
+                <dd className="mt-1">
+                  <a className="text-accent hover:underline" href={`mailto:${contact.email}`}>
+                    {contact.email}
+                  </a>
+                </dd>
+              </div>
+            ) : null}
+            {contact.phone ? (
+              <div>
+                <dt className="text-muted">Phone</dt>
+                <dd className="mt-1">
+                  <a className="text-accent hover:underline" href={`tel:${contact.phone}`}>
+                    {contact.phone}
+                  </a>
+                </dd>
+              </div>
+            ) : null}
+            {page.paymentsText ? (
+              <div>
+                <dt className="text-muted">Payments</dt>
+                <dd className="mt-1">{interpolate(page.paymentsText, vars)}</dd>
+              </div>
+            ) : null}
           </dl>
         </aside>
       </Container>
 
-      <section className="border-y border-border bg-surface py-16 lg:py-24">
-        <Container>
-          <h2 className="font-display text-h2">How we operate</h2>
-          <div className="mt-10 grid gap-0 sm:grid-cols-2 lg:grid-cols-4">
-            {facts.map(({ icon: Icon, title, body }, i) => (
-              <div key={title} className={`py-6 sm:px-6 ${i ? 'lg:border-l lg:border-border' : ''}`}>
-                <WithTooltip label={title}>
-                  <Icon className="h-5 w-5" />
-                </WithTooltip>
-                <h3 className="mt-4 font-display text-base font-semibold">{title}</h3>
-                <p className="mt-2 text-sm text-muted">{body}</p>
-              </div>
-            ))}
-          </div>
-        </Container>
-      </section>
+      {facts.length ? (
+        <section className="border-y border-border bg-surface py-16 lg:py-24">
+          <Container>
+            {page.factsTitle ? <h2 className="font-display text-h2">{interpolate(page.factsTitle, vars)}</h2> : null}
+            <div className="mt-10 grid gap-0 sm:grid-cols-2 lg:grid-cols-4">
+              {facts.map((fact, i) => {
+                const Icon = FACT_ICONS[i % FACT_ICONS.length];
+                return (
+                  <div key={`${fact.title}-${i}`} className={`py-6 sm:px-6 ${i ? 'lg:border-l lg:border-border' : ''}`}>
+                    <WithTooltip label={fact.title}>
+                      <Icon className="h-5 w-5" />
+                    </WithTooltip>
+                    <h3 className="mt-4 font-display text-base font-semibold">{interpolate(fact.title, vars)}</h3>
+                    <p className="mt-2 text-sm text-muted">{interpolate(fact.body, vars)}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </Container>
+        </section>
+      ) : null}
 
       <Container className="max-w-3xl py-16 lg:py-24">
-        <h2 className="font-display text-h2">Policies</h2>
-        <p className="mt-4 text-muted">
-          Sales are governed by our terms. Personal data is described in the privacy notice. Both apply when you create
-          an account or place an order.
-        </p>
-        <ul className="mt-6 space-y-2 text-sm">
-          <li>
-            <Link to="/terms" className="text-accent hover:underline">
-              Terms of sale
-            </Link>
-          </li>
-          <li>
-            <Link to="/privacy" className="text-accent hover:underline">
-              Privacy notice
-            </Link>
-          </li>
-          <li>
-            <Link to="/faq" className="text-accent hover:underline">
-              FAQ
-            </Link>
-          </li>
-        </ul>
+        {page.policiesTitle ? <h2 className="font-display text-h2">{interpolate(page.policiesTitle, vars)}</h2> : null}
+        <RichText text={page.policiesIntro} vars={vars} className="mt-4 space-y-3 text-muted" />
+        {links.length ? (
+          <ul className="mt-6 space-y-2 text-sm">
+            {links.map((item) => (
+              <li key={`${item.href}-${item.label}`}>
+                <PageLink href={item.href} className="text-accent hover:underline">
+                  {interpolate(item.label, vars)}
+                </PageLink>
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </Container>
     </>
   );
@@ -148,12 +140,20 @@ export function AboutPage() {
 
 export function ContactPage() {
   const { settings } = useSettings();
+  const vars = contentVars(settings);
+  const page = settings.contentPages?.contact || {};
   const form = useForm({ defaultValues: { name: '', email: '', message: '' } });
   return (
     <Container className="grid gap-12 py-16 lg:grid-cols-2">
-      <Seo title="Contact" canonical="/contact" />
+      <Seo
+        title={interpolate(page.seoTitle || page.headline || 'Contact', vars)}
+        description={interpolate(page.seoDescription || page.intro, vars)}
+        canonical="/contact"
+      />
       <div>
-        <h1 className="font-display text-h1">Contact</h1>
+        {page.kicker ? <p className="caption">{interpolate(page.kicker, vars)}</p> : null}
+        <h1 className="font-display text-h1">{interpolate(page.headline || 'Contact', vars)}</h1>
+        <RichText text={page.intro} vars={vars} className="mt-4 space-y-3 text-sm text-muted" />
         <p className="mt-4 text-sm text-muted">{settings.contact?.address}</p>
         <p className="mt-2 text-sm">
           <a className="text-accent hover:underline" href={`mailto:${settings.contact?.email}`}>
@@ -192,22 +192,25 @@ export function ContactPage() {
 }
 
 export function FaqPage() {
-  const items = [
-    { q: 'Do I need an account to browse?', a: 'No. Login is required for checkout, orders, wishlist, and reviews.' },
-    { q: 'How are prices calculated?', a: 'The server computes totals from catalog prices, shipping, tax, and coupons. The browser never sets the payable amount.' },
-    { q: 'Which payments are supported?', a: 'eSewa, Khalti, and cash on delivery. Online payments are verified with the official status APIs before an order is marked paid. COD is confirmed immediately and collected when the order is delivered.' },
-    { q: 'Is every product 3D?', a: 'No. The admin sets visual mode per product: images, 360 spin, or a GLB/GLTF model.' },
-    { q: 'How do I track an order?', a: 'Open Track order in the footer, or Account → Orders. Enter the order number and the email used at checkout. Status, courier, and tracking number are written by staff when the parcel moves — they are not simulated.' },
-  ];
+  const { settings } = useSettings();
+  const vars = contentVars(settings);
+  const page = settings.contentPages?.faq || {};
+  const items = (page.items || []).filter((item) => item.q);
   return (
     <Container className="max-w-2xl py-16">
-      <Seo title="FAQ" canonical="/faq" />
-      <h1 className="font-display text-h1">FAQ</h1>
+      <Seo
+        title={interpolate(page.seoTitle || page.title || 'FAQ', vars)}
+        description={interpolate(page.seoDescription, vars)}
+        canonical="/faq"
+      />
+      <h1 className="font-display text-h1">{interpolate(page.title || 'FAQ', vars)}</h1>
       <Accordion type="single" collapsible className="mt-8">
         {items.map((item) => (
           <AccordionItem key={item.q} value={item.q}>
-            <AccordionTrigger>{item.q}</AccordionTrigger>
-            <AccordionContent>{item.a}</AccordionContent>
+            <AccordionTrigger>{interpolate(item.q, vars)}</AccordionTrigger>
+            <AccordionContent>
+              <RichText text={item.a} vars={vars} className="space-y-3" />
+            </AccordionContent>
           </AccordionItem>
         ))}
       </Accordion>
@@ -216,345 +219,74 @@ export function FaqPage() {
 }
 
 export function TermsPage() {
-  const { settings } = useSettings();
-  const name = settings.storeName || 'ElectroPoint';
-  const contact = settings.contact || {};
-  const toc = [
-    ['agreement', 'Agreement'],
-    ['catalog', 'Catalog and pricing'],
-    ['orders', 'Orders'],
-    ['payment', 'Payment'],
-    ['delivery', 'Delivery and title'],
-    ['warranty', 'Warranty and returns'],
-    ['accounts', 'Accounts'],
-    ['liability', 'Liability'],
-    ['law', 'Governing law'],
-    ['contact', 'Contact'],
-  ];
-
-  return (
-    <LegalShell
-      kicker="Legal"
-      title="Terms of sale"
-      description={`Terms that apply when you buy from ${name}: orders, NPR pricing, eSewa, Khalti, COD, warranty, and delivery.`}
-      canonical="/terms"
-      toc={toc}
-    >
-      <LegalSection id="agreement" title="1. Agreement">
-        <p>
-          These terms govern browsing, accounts, and purchases on the {name} website. By placing an order you offer to
-          buy the listed goods at the total quoted by our server at checkout. We accept that offer when the order is
-          confirmed (paid online after gateway verification, or confirmed for cash on delivery).
-        </p>
-        <p>
-          Related rules are in the{' '}
-          <Link to="/privacy" className="text-accent hover:underline">
-            privacy notice
-          </Link>
-          . If you do not agree, do not create an account or complete checkout.
-        </p>
-      </LegalSection>
-
-      <LegalSection id="catalog" title="2. Catalog and pricing">
-        <p>
-          Product names, specifications, images, and stock come from the live catalog. Prices are in Nepalese rupees
-          (NPR). The payable amount is calculated on the server from catalog prices, sale prices, shipping, tax, and
-          any coupon. The browser cannot set the total.
-        </p>
-        <p>
-          We may correct obvious errors, withdraw an offer, or refuse an order if stock, price, or payment cannot be
-          fulfilled. Coupons apply only to eligible items and may have minimums, dates, and usage limits.
-        </p>
-      </LegalSection>
-
-      <LegalSection id="orders" title="3. Orders">
-        <p>
-          You must provide accurate contact and delivery details. We may cancel an order that cannot be verified, that
-          appears fraudulent, or that we cannot ship. Unpaid online orders may expire after the payment window set by
-          the store.
-        </p>
-        <p>
-          You can follow status from Account → Orders or the public{' '}
-          <Link to="/track" className="text-accent hover:underline">
-            track order
-          </Link>{' '}
-          page using the order number and the email used at checkout. Courier name and tracking number appear when
-          staff record a shipment — they are not simulated.
-        </p>
-      </LegalSection>
-
-      <LegalSection id="payment" title="4. Payment">
-        <p>We accept:</p>
-        <ul>
-          <li>eSewa, when enabled by the store</li>
-          <li>Khalti, when enabled by the store</li>
-          <li>Cash on delivery, when enabled by the store, collected when the order is delivered</li>
-        </ul>
-        <p>
-          Card and wallet credentials are processed by eSewa or Khalti. {name} does not store payment card numbers.
-          Online orders are marked paid only after the official gateway status API confirms the charge. COD orders are
-          confirmed immediately and remain payable on delivery.
-        </p>
-      </LegalSection>
-
-      <LegalSection id="delivery" title="5. Delivery and title">
-        <p>
-          Shipping methods, prices, and estimates are those published in store settings at checkout. Delivery times are
-          estimates, not guarantees. Risk and title in the goods pass to you on delivery to the address on the order,
-          unless we agree otherwise in writing.
-        </p>
-        <p>You must inspect the parcel on arrival and report transit damage promptly through support.</p>
-      </LegalSection>
-
-      <LegalSection id="warranty" title="6. Warranty and returns">
-        <p>
-          Manufacturer warranty applies as stated on the product and in the box. {name} records serial numbers on paid
-          orders to support warranty claims. Warranty does not cover misuse, unauthorized repair, or consumable wear
-          unless the manufacturer says otherwise.
-        </p>
-        <p>
-          Dead-on-arrival and eligible returns are handled through support. Keep the original packaging, accessories,
-          and proof of purchase. Refunds, if approved, follow the original payment method where the gateway allows.
-        </p>
-      </LegalSection>
-
-      <LegalSection id="accounts" title="7. Accounts">
-        <p>
-          You are responsible for the email and password on your account. We may suspend an account that abuses the
-          site, posts false reviews, or is used for fraud. Reviews should reflect a genuine purchase where the store
-          requires verified buyers.
-        </p>
-      </LegalSection>
-
-      <LegalSection id="liability" title="8. Liability">
-        <p>
-          To the extent permitted by Nepal law, {name} is not liable for indirect or consequential loss, lost profits,
-          or data loss arising from use of the site or delay in delivery. Nothing in these terms limits liability for
-          fraud, personal injury caused by our negligence, or rights that cannot be excluded under consumer law.
-        </p>
-        <p>Our total liability for a given order is limited to the amount you paid for that order.</p>
-      </LegalSection>
-
-      <LegalSection id="law" title="9. Governing law">
-        <p>
-          These terms are governed by the laws of Nepal. Courts in Kathmandu have jurisdiction, without limiting any
-          mandatory consumer protections that apply to you.
-        </p>
-      </LegalSection>
-
-      <LegalSection id="contact" title="10. Contact">
-        <p>
-          Questions about an order or these terms:{' '}
-          <a className="text-accent hover:underline" href={`mailto:${contact.email}`}>
-            {contact.email}
-          </a>
-          {contact.phone ? (
-            <>
-              {' '}
-              ·{' '}
-              <a className="text-accent hover:underline" href={`tel:${contact.phone}`}>
-                {contact.phone}
-              </a>
-            </>
-          ) : null}
-        </p>
-        {contact.address ? <p>{contact.address}</p> : null}
-        <p>
-          See also{' '}
-          <Link to="/contact" className="text-accent hover:underline">
-            Contact
-          </Link>{' '}
-          and{' '}
-          <Link to="/faq" className="text-accent hover:underline">
-            FAQ
-          </Link>
-          .
-        </p>
-      </LegalSection>
-    </LegalShell>
-  );
+  return <LegalPage canonical="/terms" pageKey="terms" />;
 }
 
 export function PrivacyPage() {
+  return <LegalPage canonical="/privacy" pageKey="privacy" />;
+}
+
+function LegalPage({ canonical, pageKey }) {
   const { settings } = useSettings();
-  const name = settings.storeName || 'ElectroPoint';
-  const contact = settings.contact || {};
-  const toc = [
-    ['collect', 'What we collect'],
-    ['use', 'How we use data'],
-    ['cookies', 'Cookies and sessions'],
-    ['payments', 'Payments'],
-    ['share', 'Sharing'],
-    ['keep', 'Retention'],
-    ['rights', 'Your rights'],
-    ['security', 'Security'],
-    ['children', 'Children'],
-    ['contact', 'Contact'],
-  ];
+  const vars = contentVars(settings);
+  const page = settings.contentPages?.[pageKey] || {};
+  const sections = (page.sections || []).filter((s) => s.title || s.body);
+  const toc = sections.map((section, i) => ({
+    id: sectionAnchor(section, i),
+    label: interpolate(section.title, vars),
+  }));
 
   return (
     <LegalShell
-      kicker="Legal"
-      title="Privacy notice"
-      description={`How ${name} collects and uses account, order, and technical data. We do not store payment cards.`}
-      canonical="/privacy"
+      kicker={interpolate(page.kicker, vars)}
+      title={interpolate(page.title, vars)}
+      description={page.description}
+      vars={vars}
+      updated={interpolate(page.updated, vars)}
+      seoTitle={interpolate(page.seoTitle || page.title, vars)}
+      seoDescription={interpolate(page.seoDescription || page.description, vars)}
+      canonical={canonical}
       toc={toc}
     >
-      <LegalSection id="collect" title="1. What we collect">
-        <p>Depending on how you use the site, we may process:</p>
-        <ul>
-          <li>Account details: name, email, phone, password hash</li>
-          <li>Delivery addresses and order history</li>
-          <li>Wishlist, compare selections stored in your browser, and recently viewed products</li>
-          <li>Reviews you submit, including rating and text</li>
-          <li>Support messages you send through the contact form</li>
-          <li>Technical logs needed to run the site (for example IP address on a request, session identifiers)</li>
-        </ul>
-        <p>We do not require an account to browse the catalog.</p>
-      </LegalSection>
-
-      <LegalSection id="use" title="2. How we use data">
-        <p>We use personal data to:</p>
-        <ul>
-          <li>Create and secure your account</li>
-          <li>Quote checkout totals, place orders, and record payments</li>
-          <li>Ship goods and show order status and tracking written by staff</li>
-          <li>Handle warranty, DOA, and support</li>
-          <li>Show your wishlist, reviews, and order list when you are signed in</li>
-          <li>Prevent fraud and keep the store running</li>
-        </ul>
-        <p>We do not sell your personal data. We do not build advertising profiles from your orders.</p>
-      </LegalSection>
-
-      <LegalSection id="cookies" title="3. Cookies and sessions">
-        <p>
-          Authentication uses HTTP-only cookies so scripts in the page cannot read the session token. We also use a CSRF
-          cookie on state-changing requests. You can block cookies in the browser; checkout and account pages will not
-          work without a session cookie.
-        </p>
-        <p>Recently viewed products and compare lists may be stored in local browser storage on your device.</p>
-      </LegalSection>
-
-      <LegalSection id="payments" title="4. Payments">
-        <p>
-          eSewa and Khalti process online payments. {name} does not store card numbers, wallet PINs, or gateway secrets
-          in the storefront. We store order identifiers and payment status returned by those services so we can mark an
-          order paid only after official confirmation.
-        </p>
-        <p>Cash on delivery does not send card data. Amount due is the server-quoted total shown at checkout.</p>
-      </LegalSection>
-
-      <LegalSection id="share" title="5. Sharing">
-        <p>We share data only as needed to run the store:</p>
-        <ul>
-          <li>Payment gateways (eSewa, Khalti) to complete a charge you start</li>
-          <li>Couriers, when we hand over a parcel and record a tracking number</li>
-          <li>Authorities, if required by Nepal law</li>
-        </ul>
-        <p>Staff with admin access can see orders and customer records required to fulfill and support those orders.</p>
-      </LegalSection>
-
-      <LegalSection id="keep" title="6. Retention">
-        <p>
-          We keep account and order records for as long as needed to fulfill purchases, warranty, accounting, and legal
-          duties. You may ask us to close an account; we may retain invoices and order rows that we must keep by law.
-        </p>
-      </LegalSection>
-
-      <LegalSection id="rights" title="7. Your rights">
-        <p>
-          You may request access to the personal data we hold about you, correction of inaccurate details, or deletion
-          where we are not required to keep it. Sign in to update profile and addresses, or email us. We may need to
-          verify that the request comes from the account holder.
-        </p>
-      </LegalSection>
-
-      <LegalSection id="security" title="8. Security">
-        <p>
-          Passwords are stored as hashes, not plain text. Admin and customer sessions are separated. Payment secrets
-          stay in server environment variables, not in the public settings form. No method of transmission over the
-          internet is perfectly secure; we work to reduce risk, not to claim zero risk.
-        </p>
-      </LegalSection>
-
-      <LegalSection id="children" title="9. Children">
-        <p>
-          The store is intended for adults who can enter a purchase contract. We do not knowingly collect personal data
-          from children. If you believe we have, contact us and we will delete it where the law allows.
-        </p>
-      </LegalSection>
-
-      <LegalSection id="contact" title="10. Contact">
-        <p>
-          Privacy questions:{' '}
-          <a className="text-accent hover:underline" href={`mailto:${contact.email}`}>
-            {contact.email}
-          </a>
-          {contact.phone ? (
-            <>
-              {' '}
-              ·{' '}
-              <a className="text-accent hover:underline" href={`tel:${contact.phone}`}>
-                {contact.phone}
-              </a>
-            </>
-          ) : null}
-        </p>
-        {contact.address ? <p>{contact.address}</p> : null}
-        <p>
-          See{' '}
-          <Link to="/terms" className="text-accent hover:underline">
-            Terms of sale
-          </Link>{' '}
-          for how orders work, and{' '}
-          <Link to="/contact" className="text-accent hover:underline">
-            Contact
-          </Link>{' '}
-          for general support.
-        </p>
-      </LegalSection>
+      {sections.map((section, i) => (
+        <LegalSection key={sectionAnchor(section, i)} id={sectionAnchor(section, i)} title={interpolate(section.title, vars)}>
+          <RichText text={section.body} vars={vars} className="space-y-3" />
+        </LegalSection>
+      ))}
     </LegalShell>
   );
 }
 
-function LegalShell({ kicker, title, description, canonical, toc, children }) {
+function PageLink({ href, className, children }) {
+  if (!isSafeHref(href)) return <span className={className}>{children}</span>;
+  if (href.startsWith('/') && !href.startsWith('//')) {
+    return (
+      <Link to={href} className={className}>
+        {children}
+      </Link>
+    );
+  }
   return (
-    <>
-      <Seo title={title} description={description} canonical={canonical} />
-      <Container className="py-16 lg:py-24">
-        <div className="max-w-3xl">
-          <p className="caption">{kicker}</p>
-          <h1 className="mt-3 font-display text-h1">{title}</h1>
-          <p className="mt-3 text-sm text-muted">Last updated {UPDATED}</p>
-          <p className="mt-6 text-muted">{description}</p>
-        </div>
-        {toc?.length ? (
-          <nav aria-label="Page contents" className="mt-10 max-w-3xl border border-border bg-surface p-6">
-            <p className="caption">Contents</p>
-            <ol className="mt-4 columns-1 gap-x-8 text-sm sm:columns-2">
-              {toc.map(([id, label]) => (
-                <li key={id} className="mb-2 break-inside-avoid">
-                  <a href={`#${id}`} className="hover:text-accent">
-                    {label}
-                  </a>
-                </li>
-              ))}
-            </ol>
-          </nav>
-        ) : null}
-        <div className="mt-12 max-w-3xl space-y-12">{children}</div>
-      </Container>
-    </>
+    <a href={href} className={className} {...(href.startsWith('http') ? { rel: 'noopener noreferrer' } : {})}>
+      {children}
+    </a>
   );
 }
 
-function LegalSection({ id, title, children }) {
+function PageButton({ href, label, variant }) {
+  if (!isSafeHref(href)) return null;
+  if (href.startsWith('/') && !href.startsWith('//')) {
+    return (
+      <Button asChild variant={variant}>
+        <Link to={href}>{label}</Link>
+      </Button>
+    );
+  }
   return (
-    <section id={id} className="scroll-mt-28">
-      <h2 className="font-display text-h3">{title}</h2>
-      <div className="mt-4 space-y-3 text-muted [&_a]:underline-offset-2 [&_li]:mt-1 [&_ul]:mt-3 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-5">
-        {children}
-      </div>
-    </section>
+    <Button asChild variant={variant}>
+      <a href={href} {...(href.startsWith('http') ? { rel: 'noopener noreferrer' } : {})}>
+        {label}
+      </a>
+    </Button>
   );
 }

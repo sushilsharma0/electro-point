@@ -47,6 +47,7 @@ export async function publicSettings() {
     heroProducts,
     footer: s.footer,
     announcementBar: s.announcementBar,
+    contentPages: s.contentPages || {},
     maintenanceMode: s.maintenanceMode,
   };
 }
@@ -91,8 +92,13 @@ export async function adminUpdate(payload) {
     payload.homepage = next;
   }
   delete payload.heroProducts;
+  if (payload.contentPages && typeof payload.contentPages === 'object') {
+    const current = s.contentPages && typeof s.contentPages === 'object' ? s.contentPages : {};
+    payload.contentPages = { ...current, ...payload.contentPages };
+  }
   Object.assign(s, payload);
   if (payload.homepage) s.markModified('homepage');
+  if (payload.contentPages) s.markModified('contentPages');
   await s.save();
   return adminGet();
 }

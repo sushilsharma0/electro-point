@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { catalogApi } from '@/lib/api';
+import { mergeContentPages } from '@/lib/contentPages';
 import { DEFAULT_SETTINGS } from '@/lib/product';
 
 export function useSettings() {
@@ -25,6 +26,7 @@ export function useSettings() {
       contact: { ...DEFAULT_SETTINGS.contact, ...raw.contact },
       homepage: { ...DEFAULT_SETTINGS.homepage, ...raw.homepage },
       heroProducts: Array.isArray(raw.heroProducts) ? raw.heroProducts : DEFAULT_SETTINGS.heroProducts,
+      contentPages: mergeContentPages(raw.contentPages),
     },
     query,
   };
