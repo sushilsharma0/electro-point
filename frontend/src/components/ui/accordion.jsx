@@ -13,6 +13,7 @@ export function AccordionTrigger({ className, children, ...props }) {
   return (
     <AccordionPrimitive.Header className="flex">
       <AccordionPrimitive.Trigger
+        type="button"
         className={cn(
           'flex flex-1 items-center justify-between py-4 text-left text-sm font-medium cursor-pointer transition-colors duration-200 hover:text-accent [&[data-state=open]_svg]:rotate-180',
           className,

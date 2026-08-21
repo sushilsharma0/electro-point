@@ -11,6 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { AdminHeader } from '@/components/admin/AdminChrome';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { HeroProductPicker } from '@/components/admin/HeroProductPicker';
 
 const MAX_POPUPS = 8;
@@ -22,6 +23,7 @@ export function AdminPopupsPage() {
   const couponsQ = useQuery({ queryKey: ['admin-coupons'], queryFn: () => adminApi.coupons({ limit: 50 }) });
   const [form, setForm] = useState(null);
   const [imageUrl, setImageUrl] = useState({});
+  const [openId, setOpenId] = useState('');
 
   useEffect(() => {
     if (!q.data) return;
@@ -89,12 +91,15 @@ export function AdminPopupsPage() {
       />
 
       {form.length ? (
-        <ul className="space-y-4">
+        <Accordion type="single" collapsible value={openId} onValueChange={setOpenId} className="border-t border-border">
           {form.map((row, i) => (
-            <li key={row.id} className="border border-border bg-surface p-5">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="font-display text-base font-semibold">{row.title || `Popup ${i + 1}`}</p>
-                <div className="flex items-center gap-2">
+            <AccordionItem key={row.id} value={row.id}>
+              <AccordionTrigger>
+                <span className="min-w-0 flex-1 truncate pr-4 text-left">{row.title || `Popup ${i + 1}`}</span>
+                <span className="mr-3 shrink-0 text-xs font-normal text-muted">{row.enabled !== false ? 'On' : 'Off'}</span>
+              </AccordionTrigger>
+              <AccordionContent className="space-y-4">
+                <div className="flex flex-wrap items-center justify-end gap-2">
                   <label className="flex items-center gap-2 text-sm">
                     Enabled
                     <Switch checked={row.enabled !== false} onCheckedChange={(v) => patch(i, { enabled: v })} />
@@ -105,13 +110,21 @@ export function AdminPopupsPage() {
                   <Button type="button" variant="ghost" size="icon" aria-label="Move down" disabled={isLast(form, i)} onClick={() => setForm(move(form, i, 1))}>
                     <ChevronDown className="h-4 w-4" />
                   </Button>
-                  <Button type="button" variant="ghost" size="icon" aria-label="Remove popup" onClick={() => setForm(form.filter((_, idx) => idx !== i))}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Remove popup"
+                    onClick={() => {
+                      setForm(form.filter((_, idx) => idx !== i));
+                      if (openId === row.id) setOpenId('');
+                    }}
+                  >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
-              </div>
 
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <Label htmlFor={`kicker-${i}`}>Kicker</Label>
                   <Input id={`kicker-${i}`} className="mt-1" value={row.kicker || ''} onChange={(e) => patch(i, { kicker: e.target.value })} />
@@ -121,12 +134,12 @@ export function AdminPopupsPage() {
                   <Input id={`title-${i}`} className="mt-1" value={row.title || ''} onChange={(e) => patch(i, { title: e.target.value })} />
                 </div>
               </div>
-              <div className="mt-4">
+              <div>
                 <Label htmlFor={`body-${i}`}>Text</Label>
                 <Textarea id={`body-${i}`} className="mt-1" value={row.body || ''} onChange={(e) => patch(i, { body: e.target.value })} />
               </div>
 
-              <div className="mt-4">
+              <div>
                 <Label>Images</Label>
                 <ul className="mt-2 flex flex-wrap gap-2">
                   {(row.images || []).map((src) => (
@@ -179,7 +192,7 @@ export function AdminPopupsPage() {
                 </div>
               </div>
 
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <Label htmlFor={`cta-${i}`}>Button label</Label>
                   <Input id={`cta-${i}`} className="mt-1" value={row.ctaLabel || ''} onChange={(e) => patch(i, { ctaLabel: e.target.value })} />
@@ -190,21 +203,19 @@ export function AdminPopupsPage() {
                 </div>
               </div>
 
-              <div className="mt-4">
-                <HeroProductPicker
-                  cacheKey={`popup-${row.id}`}
-                  ids={row.productIds || []}
-                  products={row.products || []}
-                  showPreview={false}
-                  title="Products in this popup"
-                  description="Only these products appear in the popup. Leave empty to show none."
-                  emptyHint="No products selected. The popup will not list devices until you add some."
-                  onChange={(productIds, products) => patch(i, { productIds, products })}
-                />
-              </div>
+              <HeroProductPicker
+                cacheKey={`popup-${row.id}`}
+                ids={row.productIds || []}
+                products={row.products || []}
+                showPreview={false}
+                title="Products in this popup"
+                description="Only these products appear in the popup. Leave empty to show none."
+                emptyHint="No products selected. The popup will not list devices until you add some."
+                onChange={(productIds, products) => patch(i, { productIds, products })}
+              />
 
               {coupons.length ? (
-                <fieldset className="mt-4">
+                <fieldset>
                   <legend className="text-[13px] font-medium">Coupons</legend>
                   <ul className="mt-2 grid gap-2 sm:grid-cols-2">
                     {coupons.map((c) => (
@@ -222,10 +233,10 @@ export function AdminPopupsPage() {
                   </ul>
                 </fieldset>
               ) : (
-                <p className="mt-4 text-sm text-muted">Create coupons first to attach them here.</p>
+                <p className="text-sm text-muted">Create coupons first to attach them here.</p>
               )}
 
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <Label>How often</Label>
                   <Select value={row.frequency || 'once'} onValueChange={(frequency) => patch(i, { frequency })}>
@@ -252,14 +263,24 @@ export function AdminPopupsPage() {
                   />
                 </div>
               </div>
-            </li>
+              </AccordionContent>
+            </AccordionItem>
           ))}
-        </ul>
+        </Accordion>
       ) : (
         <p className="text-sm text-muted">No popups yet. Add one to announce a sale, coupon, or campaign.</p>
       )}
 
-      <Button type="button" variant="outline" disabled={full} onClick={() => setForm([...form, emptyPopup(form.length)])}>
+      <Button
+        type="button"
+        variant="outline"
+        disabled={full}
+        onClick={() => {
+          const next = emptyPopup(form.length);
+          setForm([...form, next]);
+          setOpenId(next.id);
+        }}
+      >
         <Plus className="h-4 w-4" />
         Add popup
       </Button>
