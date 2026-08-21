@@ -256,17 +256,29 @@ export function AddressSkeleton() {
 
 export function CheckoutSkeleton() {
   return (
-    <Container className="grid gap-10 lg:grid-cols-[1fr_340px]">
-      <div className="space-y-4">
-        <Skeleton className="h-3 w-full" />
-        <Skeleton className="h-2 w-full" />
-        <Skeleton className="mt-6 h-7 w-48" />
-        <Skeleton className="h-10 w-full max-w-md" />
-        <Skeleton className="h-10 w-full max-w-md" />
-        <Skeleton className="h-10 w-40" />
+    <Container className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-12">
+      <div className="space-y-6">
+        <div className="flex gap-2">
+          <Skeleton className="h-7 w-7 rounded-full" />
+          <Skeleton className="h-7 w-7 rounded-full" />
+          <Skeleton className="h-7 w-7 rounded-full" />
+          <Skeleton className="h-7 w-7 rounded-full" />
+          <Skeleton className="h-7 w-7 rounded-full" />
+          <Skeleton className="h-7 w-7 rounded-full" />
+        </div>
+        <div className="space-y-4 border border-border bg-surface p-8">
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="h-8 w-56" />
+          <Skeleton className="h-11 w-full max-w-md" />
+          <Skeleton className="h-11 w-full max-w-md" />
+          <Skeleton className="h-11 w-full max-w-md" />
+          <Skeleton className="h-10 w-32" />
+        </div>
       </div>
-      <div className="space-y-3 border border-border p-5">
+      <div className="hidden space-y-3 border border-border bg-surface p-6 lg:block">
+        <Skeleton className="h-3 w-20" />
         <Skeleton className="h-5 w-32" />
+        <Skeleton className="h-12 w-full" />
         <Skeleton className="h-4 w-full" />
         <Skeleton className="h-4 w-full" />
         <Skeleton className="h-8 w-full" />

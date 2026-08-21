@@ -11,17 +11,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label, FieldError } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Progress } from '@/components/ui/progress';
 import { CartSummary } from '@/components/cart/CartSummary';
+import { CheckoutStepper } from '@/components/checkout/CheckoutStepper';
+import { CheckoutPanel, CheckoutActions } from '@/components/checkout/CheckoutPanel';
 import { Container } from '@/components/layout/Container';
 import { Seo } from '@/components/Seo';
 import { EmptyState } from '@/pages/errors/EmptyState';
 import { toast } from 'sonner';
 import { cn } from '@/lib/cn';
+import { formatNpr } from '@/lib/money';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Banknote } from 'lucide-react';
+import { Banknote, CheckCircle2, Lock, ShieldCheck, Smartphone, Wallet } from 'lucide-react';
 import { CheckoutSkeleton } from '@/components/ui/skeleton';
-import { WithTooltip } from '@/components/ui/tooltip';
 
 const STEPS = ['Info', 'Address', 'Shipping', 'Summary', 'Payment', 'Done'];
 
@@ -76,21 +77,27 @@ export function CheckoutPage() {
     return (
       <Container className="max-w-lg py-8">
         <Seo title="Checkout" noindex />
-        <h1 className="font-display text-h2">Sign in to place an order</h1>
-        <p className="mt-2 text-sm text-muted">You can browse as a guest. Checkout requires an account so we can attach the order and payment.</p>
-        <div className="mt-6 flex gap-3">
-          <Button asChild>
-            <Link to="/login?next=/checkout">Sign in</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link to="/register?next=/checkout">Create account</Link>
-          </Button>
-        </div>
+        <CheckoutPanel
+          kicker="Account required"
+          title="Sign in to place an order"
+          body="You can browse as a guest. Checkout needs an account so we can attach the order and payment."
+        >
+          <div className="flex gap-3">
+            <Button asChild>
+              <Link to="/login?next=/checkout">Sign in</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/register?next=/checkout">Create account</Link>
+            </Button>
+          </div>
+        </CheckoutPanel>
       </Container>
     );
   }
 
   const shippingOptions = settings.shipping || [];
+  const shippingLabel = shippingOptions.find((s) => s.code === shippingMethod)?.name || shippingMethod;
+  const payments = settings.payments || {};
 
   const submitEsewa = async (orderId) => {
     setPaying(true);
@@ -183,116 +190,182 @@ export function CheckoutPage() {
     }
   };
 
-  return (
-    <Container className="grid gap-10 lg:grid-cols-[1fr_340px]">
-      <Seo title="Checkout" noindex />
-      <div>
-        <ol className="mb-8 flex gap-2 overflow-x-auto text-xs uppercase tracking-wide">
-          {STEPS.map((s, i) => (
-            <li key={s} className={cn('shrink-0 border-b-2 pb-2 pr-4', i === step ? 'border-accent text-foreground' : 'border-transparent text-muted')}>
-              {i + 1}. {s}
-            </li>
-          ))}
-        </ol>
-        <Progress value={((step + 1) / STEPS.length) * 100} className="mb-8" />
+  const summary = <CartSummary cart={cart} quote={quote.data} quoteLoading={quote.isLoading} />;
 
-        {step === 0 ? <InfoStep defaultValues={info} onNext={(v) => { setInfo(v); setStep(1); }} /> : null}
-        {step === 1 ? <AddressStep defaultValues={address} onBack={() => setStep(0)} onNext={(v) => { setAddress(v); setStep(2); }} /> : null}
-        {step === 2 ? (
-          <div>
-            <h2 className="font-display text-lg font-semibold">Shipping</h2>
-            <RadioGroup value={shippingMethod} onValueChange={setShippingMethod} className="mt-4 space-y-3">
-              {shippingOptions.map((s) => (
-                <label key={s.code} className="flex cursor-pointer items-start gap-3 border border-border p-4">
-                  <RadioGroupItem value={s.code} id={s.code} />
-                  <span>
-                    <span className="block font-medium">{s.name}</span>
-                    <span className="text-sm text-muted">{s.eta}</span>
-                  </span>
-                </label>
-              ))}
-            </RadioGroup>
-            <div className="mt-6 flex gap-2">
-              <Button type="button" variant="outline" onClick={() => setStep(1)}>Back</Button>
-              <Button type="button" onClick={() => setStep(3)}>Continue</Button>
-            </div>
-          </div>
-        ) : null}
-        {step === 3 ? (
-          <div>
-            <h2 className="font-display text-lg font-semibold">Confirm details</h2>
-            <dl className="mt-4 space-y-2 text-sm">
-              <div><dt className="text-muted">Contact</dt><dd>{info.name} · {info.email} · {info.phone}</dd></div>
-              <div><dt className="text-muted">Address</dt><dd>{address?.line1}, {address?.city}</dd></div>
-              <div><dt className="text-muted">Shipping</dt><dd>{shippingMethod}</dd></div>
-            </dl>
-            <p className="mt-4 text-sm text-muted">Prices below are quoted by the server. The order total is calculated again when you place it.</p>
-            <div className="mt-6 flex gap-2">
-              <Button type="button" variant="outline" onClick={() => setStep(2)}>Back</Button>
-              <Button type="button" onClick={() => setStep(4)}>Continue to payment</Button>
-            </div>
-          </div>
-        ) : null}
-        {step === 4 ? (
-          <div>
-            <h2 className="font-display text-lg font-semibold">Payment method</h2>
-            <p className="mt-2 text-sm text-muted">
-              eSewa and Khalti redirect to their gateways. Cash on delivery is confirmed now and collected when your order arrives.
-            </p>
-            <div className="mt-6 flex flex-col gap-3">
-              {settings.payments?.esewaEnabled !== false ? (
-                <Button type="button" size="lg" disabled={paying} onClick={() => placeOrder('esewa')}>
-                  Pay with eSewa
-                </Button>
-              ) : null}
-              {settings.payments?.khaltiEnabled !== false ? (
-                <Button type="button" size="lg" variant="outline" disabled={paying} onClick={() => placeOrder('khalti')}>
-                  Pay with Khalti
-                </Button>
-              ) : null}
-              {settings.payments?.codEnabled !== false ? (
-                <Button type="button" size="lg" variant="outline" disabled={paying} onClick={() => placeOrder('cod')}>
-                  <WithTooltip label="Cash on delivery">
-                    <Banknote />
-                  </WithTooltip>
-                  Cash on delivery
-                </Button>
-              ) : null}
-            </div>
-            <Button type="button" variant="ghost" className="mt-4" onClick={() => setStep(3)}>Back</Button>
-          </div>
-        ) : null}
-        {step === 5 && placedMethod === 'cod' ? (
-          <div>
-            <h2 className="font-display text-lg font-semibold">Order confirmed</h2>
-            <p className="mt-2 text-sm text-muted">
-              {order?.orderNumber} is confirmed. Pay cash to the courier when your order arrives.
-            </p>
-            <Button asChild className="mt-6">
-              <Link to={`/account/orders/${order?._id || order?.id}`}>View order</Link>
-            </Button>
-          </div>
-        ) : null}
-        {step === 5 && placedMethod !== 'cod' ? (
-          <div>
-            <h2 className="font-display text-lg font-semibold">Redirecting to payment</h2>
-            <p className="mt-2 text-sm text-muted">
-              Order {order?.orderNumber || order?._id} created as payment pending. Do not close this tab until the gateway loads.
-            </p>
-            {paying ? <p className="mt-4 text-sm">Connecting to gateway…</p> : null}
-          </div>
-        ) : null}
-      </div>
+  return (
+    <Container>
+      <Seo title="Checkout" noindex />
+      <h1 className="sr-only">Checkout</h1>
+      <details className="mb-6 lg:hidden">
+        <summary className="cursor-pointer py-2 text-sm font-medium text-accent">Show order summary</summary>
+        <div className="mt-3">{summary}</div>
+      </details>
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-12">
       <div>
-        <details className="mb-4 border border-border p-4 lg:hidden">
-          <summary className="cursor-pointer font-medium">Order summary</summary>
-          <div className="mt-4">
-            <CartSummary cart={cart} quote={quote.data} quoteLoading={quote.isLoading} />
-          </div>
-        </details>
-        <div className="hidden lg:sticky lg:top-8 lg:block">
-          <CartSummary cart={cart} quote={quote.data} quoteLoading={quote.isLoading} />
+        <CheckoutStepper steps={STEPS} current={step} onSelect={order ? undefined : setStep} />
+
+        <div className="mt-8">
+          {step === 0 ? (
+            <InfoStep
+              defaultValues={info}
+              onNext={(v) => {
+                setInfo(v);
+                setStep(1);
+              }}
+            />
+          ) : null}
+          {step === 1 ? (
+            <AddressStep
+              defaultValues={address}
+              onBack={() => setStep(0)}
+              onNext={(v) => {
+                setAddress(v);
+                setStep(2);
+              }}
+            />
+          ) : null}
+          {step === 2 ? (
+            <CheckoutPanel kicker="Step 3 of 6" title="Shipping" body="Delivery windows are estimates for Kathmandu Valley. Outside the valley, the courier confirms a date after dispatch.">
+              <RadioGroup value={shippingMethod} onValueChange={setShippingMethod} className="space-y-3">
+                {shippingOptions.map((s) => (
+                  <label
+                    key={s.code}
+                    className={cn(
+                      'flex cursor-pointer items-start gap-3 border p-4 transition-colors duration-200',
+                      shippingMethod === s.code ? 'border-foreground bg-muted-bg' : 'border-border hover:border-foreground/30',
+                    )}
+                  >
+                    <RadioGroupItem value={s.code} id={s.code} className="mt-0.5" />
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-baseline justify-between gap-3">
+                        <span className="font-medium">{s.name}</span>
+                        <span className="shrink-0 tabular text-sm">{s.pricePaisa ? formatNpr(s.pricePaisa) : 'Free'}</span>
+                      </span>
+                      <span className="mt-0.5 block text-sm text-muted">{s.eta}</span>
+                    </span>
+                  </label>
+                ))}
+              </RadioGroup>
+              <CheckoutActions>
+                <Button type="button" variant="outline" onClick={() => setStep(1)}>
+                  Back
+                </Button>
+                <Button type="button" onClick={() => setStep(3)}>
+                  Continue
+                </Button>
+              </CheckoutActions>
+            </CheckoutPanel>
+          ) : null}
+          {step === 3 ? (
+            <CheckoutPanel kicker="Step 4 of 6" title="Confirm details" body="Prices in the summary are quoted by the server. The order total is calculated again when you place it.">
+              <dl className="divide-y divide-border border-y border-border text-sm">
+                <ReviewRow label="Contact" onEdit={() => setStep(0)}>
+                  {info.name}
+                  <span className="mt-0.5 block text-muted">
+                    {info.email} · {info.phone}
+                  </span>
+                </ReviewRow>
+                <ReviewRow label="Address" onEdit={() => setStep(1)}>
+                  {address?.fullName}
+                  <span className="mt-0.5 block text-muted">
+                    {address?.line1}
+                    {address?.line2 ? `, ${address.line2}` : ''}
+                    {address?.city ? `, ${address.city}` : ''}
+                    {address?.state ? `, ${address.state}` : ''}
+                    {address?.postalCode ? ` ${address.postalCode}` : ''}
+                  </span>
+                </ReviewRow>
+                <ReviewRow label="Shipping" onEdit={() => setStep(2)}>
+                  {shippingLabel}
+                </ReviewRow>
+              </dl>
+              <CheckoutActions>
+                <Button type="button" variant="outline" onClick={() => setStep(2)}>
+                  Back
+                </Button>
+                <Button type="button" onClick={() => setStep(4)}>
+                  Continue to payment
+                </Button>
+              </CheckoutActions>
+            </CheckoutPanel>
+          ) : null}
+          {step === 4 ? (
+            <CheckoutPanel
+              kicker="Step 5 of 6"
+              title="Payment method"
+              body="eSewa and Khalti redirect to their gateways. Cash on delivery is confirmed now and collected when your order arrives."
+            >
+              <div className="flex flex-col gap-3">
+                {payments.esewaEnabled !== false ? (
+                  <PaymentChoice
+                    disabled={paying}
+                    icon={Wallet}
+                    title="eSewa"
+                    hint="Official wallet. You will leave this page to pay."
+                    onClick={() => placeOrder('esewa')}
+                  />
+                ) : null}
+                {payments.khaltiEnabled !== false ? (
+                  <PaymentChoice
+                    disabled={paying}
+                    icon={Smartphone}
+                    title="Khalti"
+                    hint="Official wallet. You will leave this page to pay."
+                    onClick={() => placeOrder('khalti')}
+                  />
+                ) : null}
+                {payments.codEnabled !== false ? (
+                  <PaymentChoice
+                    disabled={paying}
+                    icon={Banknote}
+                    title="Cash on delivery"
+                    hint="Pay the courier in NPR when the order arrives."
+                    onClick={() => placeOrder('cod')}
+                  />
+                ) : null}
+              </div>
+              <CheckoutActions>
+                <Button type="button" variant="ghost" disabled={paying} onClick={() => setStep(3)}>
+                  Back
+                </Button>
+              </CheckoutActions>
+            </CheckoutPanel>
+          ) : null}
+          {step === 5 && placedMethod === 'cod' ? (
+            <CheckoutPanel kicker="Complete">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-border bg-muted-bg text-success">
+                <CheckCircle2 className="h-6 w-6" aria-hidden />
+              </div>
+              <h2 className="mt-4 font-display text-xl font-semibold">Order confirmed</h2>
+              <p className="mt-2 max-w-md text-sm text-muted">
+                {order?.orderNumber} is confirmed. Pay cash to the courier when your order arrives.
+              </p>
+              <CheckoutActions>
+                <Button asChild>
+                  <Link to={`/account/orders/${order?._id || order?.id}`}>View order</Link>
+                </Button>
+              </CheckoutActions>
+            </CheckoutPanel>
+          ) : null}
+          {step === 5 && placedMethod !== 'cod' ? (
+            <CheckoutPanel kicker="Payment pending" title="Redirecting to payment" body={`Order ${order?.orderNumber || order?._id} is created. Do not close this tab until the gateway loads.`}>
+              {paying ? <p className="text-sm">Connecting to gateway…</p> : null}
+            </CheckoutPanel>
+          ) : null}
         </div>
+
+        <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-xs text-muted">
+          <li className="inline-flex items-center gap-1.5">
+            <Lock className="h-3.5 w-3.5" aria-hidden />
+            Encrypted checkout
+          </li>
+          <li className="inline-flex items-center gap-1.5">
+            <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
+            Official warranty on listed devices
+          </li>
+        </ul>
+      </div>
+      <div className="hidden lg:sticky lg:top-8 lg:block">{summary}</div>
       </div>
     </Container>
   );
@@ -301,25 +374,28 @@ export function CheckoutPage() {
 function InfoStep({ defaultValues, onNext }) {
   const form = useForm({ resolver: zodResolver(infoSchema), defaultValues });
   return (
-    <form onSubmit={form.handleSubmit(onNext)} className="max-w-md space-y-4">
-      <h2 className="font-display text-lg font-semibold">Your information</h2>
-      <div>
-        <Label htmlFor="name">Full name</Label>
-        <Input id="name" className="mt-1" {...form.register('name')} />
-        <FieldError>{form.formState.errors.name?.message}</FieldError>
-      </div>
-      <div>
-        <Label htmlFor="email">Email</Label>
-        <Input id="email" type="email" className="mt-1" {...form.register('email')} />
-        <FieldError>{form.formState.errors.email?.message}</FieldError>
-      </div>
-      <div>
-        <Label htmlFor="phone">Phone</Label>
-        <Input id="phone" className="mt-1" {...form.register('phone')} />
-        <FieldError>{form.formState.errors.phone?.message}</FieldError>
-      </div>
-      <Button type="submit">Continue</Button>
-    </form>
+    <CheckoutPanel kicker="Step 1 of 6" title="Your information" body="We’ll use this for order updates and delivery calls.">
+      <form onSubmit={form.handleSubmit(onNext)} className="max-w-md space-y-4">
+        <div>
+          <Label htmlFor="name">Full name</Label>
+          <Input id="name" className="mt-1.5 h-11" autoComplete="name" {...form.register('name')} />
+          <FieldError>{form.formState.errors.name?.message}</FieldError>
+        </div>
+        <div>
+          <Label htmlFor="email">Email</Label>
+          <Input id="email" type="email" className="mt-1.5 h-11" autoComplete="email" {...form.register('email')} />
+          <FieldError>{form.formState.errors.email?.message}</FieldError>
+        </div>
+        <div>
+          <Label htmlFor="phone">Phone</Label>
+          <Input id="phone" className="mt-1.5 h-11" autoComplete="tel" {...form.register('phone')} />
+          <FieldError>{form.formState.errors.phone?.message}</FieldError>
+        </div>
+        <CheckoutActions>
+          <Button type="submit">Continue</Button>
+        </CheckoutActions>
+      </form>
+    </CheckoutPanel>
   );
 }
 
@@ -329,49 +405,85 @@ function AddressStep({ defaultValues, onNext, onBack }) {
     defaultValues: defaultValues || { country: 'Nepal', fullName: '', phone: '', line1: '', city: '', state: '', postalCode: '' },
   });
   return (
-    <form onSubmit={form.handleSubmit(onNext)} className="max-w-md space-y-4">
-      <h2 className="font-display text-lg font-semibold">Delivery address</h2>
-      <div>
-        <Label htmlFor="fullName">Recipient</Label>
-        <Input id="fullName" className="mt-1" {...form.register('fullName')} />
-        <FieldError>{form.formState.errors.fullName?.message}</FieldError>
-      </div>
-      <div>
-        <Label htmlFor="aphone">Phone</Label>
-        <Input id="aphone" className="mt-1" {...form.register('phone')} />
-        <FieldError>{form.formState.errors.phone?.message}</FieldError>
-      </div>
-      <div>
-        <Label htmlFor="line1">Address line 1</Label>
-        <Input id="line1" className="mt-1" {...form.register('line1')} />
-        <FieldError>{form.formState.errors.line1?.message}</FieldError>
-      </div>
-      <div>
-        <Label htmlFor="line2">Address line 2</Label>
-        <Input id="line2" className="mt-1" {...form.register('line2')} />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
+    <CheckoutPanel kicker="Step 2 of 6" title="Delivery address" body="Use a location the courier can reach by phone.">
+      <form onSubmit={form.handleSubmit(onNext)} className="max-w-md space-y-4">
         <div>
-          <Label htmlFor="city">City</Label>
-          <Input id="city" className="mt-1" {...form.register('city')} />
-          <FieldError>{form.formState.errors.city?.message}</FieldError>
+          <Label htmlFor="fullName">Recipient</Label>
+          <Input id="fullName" className="mt-1.5 h-11" autoComplete="name" {...form.register('fullName')} />
+          <FieldError>{form.formState.errors.fullName?.message}</FieldError>
         </div>
         <div>
-          <Label htmlFor="state">Province</Label>
-          <Input id="state" className="mt-1" {...form.register('state')} />
-          <FieldError>{form.formState.errors.state?.message}</FieldError>
+          <Label htmlFor="aphone">Phone</Label>
+          <Input id="aphone" className="mt-1.5 h-11" autoComplete="tel" {...form.register('phone')} />
+          <FieldError>{form.formState.errors.phone?.message}</FieldError>
         </div>
-      </div>
+        <div>
+          <Label htmlFor="line1">Address line 1</Label>
+          <Input id="line1" className="mt-1.5 h-11" autoComplete="address-line1" {...form.register('line1')} />
+          <FieldError>{form.formState.errors.line1?.message}</FieldError>
+        </div>
+        <div>
+          <Label htmlFor="line2">Address line 2</Label>
+          <Input id="line2" className="mt-1.5 h-11" autoComplete="address-line2" {...form.register('line2')} />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label htmlFor="city">City</Label>
+            <Input id="city" className="mt-1.5 h-11" autoComplete="address-level2" {...form.register('city')} />
+            <FieldError>{form.formState.errors.city?.message}</FieldError>
+          </div>
+          <div>
+            <Label htmlFor="state">Province</Label>
+            <Input id="state" className="mt-1.5 h-11" autoComplete="address-level1" {...form.register('state')} />
+            <FieldError>{form.formState.errors.state?.message}</FieldError>
+          </div>
+        </div>
+        <div>
+          <Label htmlFor="postalCode">Postal code</Label>
+          <Input id="postalCode" className="mt-1.5 h-11" autoComplete="postal-code" {...form.register('postalCode')} />
+          <FieldError>{form.formState.errors.postalCode?.message}</FieldError>
+        </div>
+        <input type="hidden" {...form.register('country')} />
+        <CheckoutActions>
+          <Button type="button" variant="outline" onClick={onBack}>
+            Back
+          </Button>
+          <Button type="submit">Continue</Button>
+        </CheckoutActions>
+      </form>
+    </CheckoutPanel>
+  );
+}
+
+function ReviewRow({ label, onEdit, children }) {
+  return (
+    <div className="flex items-start justify-between gap-4 py-4">
       <div>
-        <Label htmlFor="postalCode">Postal code</Label>
-        <Input id="postalCode" className="mt-1" {...form.register('postalCode')} />
-        <FieldError>{form.formState.errors.postalCode?.message}</FieldError>
+        <dt className="caption">{label}</dt>
+        <dd className="mt-1 font-medium">{children}</dd>
       </div>
-      <input type="hidden" {...form.register('country')} />
-      <div className="flex gap-2">
-        <Button type="button" variant="outline" onClick={onBack}>Back</Button>
-        <Button type="submit">Continue</Button>
-      </div>
-    </form>
+      <button type="button" className="shrink-0 text-sm text-accent hover:underline" onClick={onEdit}>
+        Edit
+      </button>
+    </div>
+  );
+}
+
+function PaymentChoice({ icon: Icon, title, hint, onClick, disabled }) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className="flex w-full cursor-pointer items-start gap-4 border border-border bg-surface p-4 text-left transition-colors duration-200 hover:border-foreground/30 disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center border border-border bg-muted-bg">
+        <Icon className="h-4 w-4" aria-hidden />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block font-medium">{title}</span>
+        <span className="mt-0.5 block text-sm text-muted">{hint}</span>
+      </span>
+    </button>
   );
 }
