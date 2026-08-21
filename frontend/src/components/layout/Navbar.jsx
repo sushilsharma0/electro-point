@@ -1,13 +1,13 @@
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { GitCompare, Heart, Menu, ShoppingBag, User, ChevronDown } from 'lucide-react';
+import { GitCompare, Heart, Menu, ShoppingBag, ChevronDown } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Logo } from '@/components/layout/Logo';
 import { SearchBox } from '@/components/layout/SearchBox';
 import { MegaMenu } from '@/components/layout/MegaMenu';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { MobileNav } from '@/components/layout/MobileNav';
+import { AccountMenu } from '@/components/layout/AccountMenu';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
 import { useCategories } from '@/hooks/useCatalog';
 import { useCartUi } from '@/store/cart';
@@ -16,7 +16,6 @@ import { listFrom } from '@/lib/api';
 import { cn } from '@/lib/cn';
 
 export function Navbar() {
-  const { user } = useAuth();
   const { count, query: cartQuery } = useCart();
   const cats = useCategories();
   const categories = listFrom(cats.data);
@@ -158,11 +157,7 @@ export function Navbar() {
               <Heart />
             </Link>
           </Button>
-          <Button asChild variant="ghost" size="icon" aria-label={user ? 'Account' : 'Sign in'}>
-            <Link to={user ? '/account' : '/login'}>
-              <User />
-            </Link>
-          </Button>
+          <AccountMenu />
           <Button
             type="button"
             variant="ghost"
