@@ -14,6 +14,7 @@ import {
 import { COOKIE } from '../utils/cookies.js';
 import { isMailConfigured, sendPasswordReset } from './emailService.js';
 import { mergeGuestCart } from './cartService.js';
+import { localPhoneDigits, isNepalMobile, normalizePhone, phoneLookupVariants } from '../utils/phone.js';
 
 const RESET_TTL_MS = 30 * 60 * 1000;
 
@@ -30,6 +31,8 @@ function refreshHashField(audience) {
 export async function register({ name, email, password, phone, guestId }) {
   const normalizedEmail = String(email || '').trim().toLowerCase();
   if (!normalizedEmail) throw ApiError.badRequest('Email is required');
+  if (!String(name || '').trim()) throw ApiError.badRequest('Name is required');
+  if (!isNepalMobile(phone)) throw ApiError.badRequest('Enter a 10-digit mobile number');
   const exists = await User.findOne({ email: normalizedEmail });
   if (exists) throw ApiError.conflict('Email already registered');
   const passwordHash = await bcrypt.hash(password, env.BCRYPT_COST);
@@ -38,7 +41,7 @@ export async function register({ name, email, password, phone, guestId }) {
     user = await User.create({
       name,
       email: normalizedEmail,
-      phone: phone || '',
+      phone: normalizePhone(phone),
       passwordHash,
       role: 'customer',
     });
@@ -63,15 +66,16 @@ export async function register({ name, email, password, phone, guestId }) {
   return { user, accessToken, refreshToken };
 }
 
-export async function login({ email, password, guestId }) {
-  const user = await User.findOne({ email: String(email || '').trim().toLowerCase() }).select('+passwordHash +refreshTokenHash');
-  if (!user) throw ApiError.unauthorized('Invalid email or password');
+export async function login({ email, phone, identifier, password, guestId }) {
+  const raw = String(identifier || email || phone || '').trim();
+  const user = await findCustomerForLogin(raw);
+  if (!user) throw ApiError.unauthorized('Invalid email, mobile number, or password');
   if (user.role === 'superadmin') {
     throw ApiError.forbidden('Staff accounts sign in at the admin console.');
   }
   if (user.status !== 'active') throw ApiError.forbidden('Account is suspended');
   const match = await bcrypt.compare(password, user.passwordHash);
-  if (!match) throw ApiError.unauthorized('Invalid email or password');
+  if (!match) throw ApiError.unauthorized('Invalid email, mobile number, or password');
   const { accessToken, refreshToken } = tokensFor(user, AUDIENCE.STOREFRONT);
   user.refreshTokenHash = hashToken(refreshToken);
   user.lastLoginAt = new Date();
@@ -84,6 +88,24 @@ export async function login({ email, password, guestId }) {
     }
   }
   return { user, accessToken, refreshToken };
+}
+
+async function findCustomerForLogin(raw) {
+  if (!raw) return null;
+  const select = '+passwordHash +refreshTokenHash';
+  if (raw.includes('@')) {
+    return User.findOne({ email: raw.toLowerCase() }).select(select);
+  }
+  const variants = phoneLookupVariants(raw);
+  if (!variants.length) return null;
+  const exact = await User.findOne({ phone: { $in: variants } }).select(select);
+  if (exact) return exact;
+  const local = localPhoneDigits(raw);
+  if (local.length !== 10) return null;
+  const pattern = new RegExp(`^\\D*${local.split('').join('\\D*')}\\D*$`);
+  const matches = await User.find({ phone: { $ne: '', $regex: pattern } }).select(select);
+  if (matches.length !== 1) return null;
+  return matches[0];
 }
 
 export async function adminLogin({ email, password }) {

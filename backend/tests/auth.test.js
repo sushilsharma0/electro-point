@@ -65,6 +65,27 @@ describe('auth and admin authorization', { timeout: 120_000 }, () => {
     const login = await api2.post('/api/v1/auth/login').send({ email, password: 'Customer#12345' });
     assert.equal(login.status, 200);
     assert.equal(login.body.data.user.email, email);
+
+    const api3 = client(app);
+    await api3.initCsrf();
+    const phoneLogin = await api3.post('/api/v1/auth/login').send({
+      identifier: '+977 9800000000',
+      password: 'Customer#12345',
+    });
+    assert.equal(phoneLogin.status, 200, phoneLogin.body?.error?.message);
+    assert.equal(phoneLogin.body.data.user.email, email);
+  });
+
+  it('requires name, email, mobile number, and password to register', async () => {
+    const api = client(app);
+    await api.initCsrf();
+    const res = await api.post('/api/v1/auth/register').send({
+      name: 'No Phone',
+      email: `nophone${Date.now()}@example.com`,
+      password: 'Customer#12345',
+    });
+    assert.equal(res.status, 400);
+    assert.equal(res.body.success, false);
   });
 
   it('forbids customer from admin APIs', async () => {
@@ -75,6 +96,7 @@ describe('auth and admin authorization', { timeout: 120_000 }, () => {
       name: 'Customer',
       email,
       password: 'Customer#12345',
+      phone: '9800000002',
     });
     const res = await api.get('/api/v1/admin/analytics');
     assert.equal(res.status, 401);

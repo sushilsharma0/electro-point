@@ -11,17 +11,17 @@ import { Container } from '@/components/layout/Container';
 import { Seo } from '@/components/Seo';
 import { toast } from 'sonner';
 import { StaffLoginLink } from '@/components/layout/StaffLoginLink';
-import { PASSWORD_HINT, applyApiFieldErrors, apiErrorMessage, passwordSchema } from '@/lib/validation';
+import { PASSWORD_HINT, applyApiFieldErrors, apiErrorMessage, nepalMobileSchema, passwordSchema } from '@/lib/validation';
 
 const loginSchema = z.object({
-  email: z.string().email(),
+  identifier: z.string().trim().min(3, 'Enter your email or mobile number'),
   password: z.string().min(1, 'Enter your password'),
 });
 
 const registerSchema = z.object({
-  name: z.string().trim().min(2, 'Name must be at least 2 characters'),
-  email: z.string().trim().email(),
-  phone: z.string().trim().max(20).optional(),
+  name: z.string().trim().min(2, 'Name is required'),
+  email: z.string().trim().min(1, 'Email is required').email('Enter a valid email'),
+  phone: nepalMobileSchema(z),
   password: passwordSchema(z),
 });
 
@@ -31,18 +31,21 @@ export function LoginPage() {
   const [sp] = useSearchParams();
   const rawNext = sp.get('next') || '/account';
   const next = rawNext.startsWith('/admin') ? '/account' : rawNext;
-  const form = useForm({ resolver: zodResolver(loginSchema), defaultValues: { email: '', password: '' } });
+  const form = useForm({ resolver: zodResolver(loginSchema), defaultValues: { identifier: '', password: '' } });
 
   return (
     <Container className="max-w-md py-16">
       <Seo title="Sign in" canonical="/login" noindex />
       <h1 className="font-display text-h1">Sign in</h1>
-      <p className="mt-2 text-sm text-muted">Guests can browse. An account is required for checkout and wishlist.</p>
+      <p className="mt-2 text-sm text-muted">Sign in with the email or mobile number on your account. Guests can browse; an account is required for checkout and wishlist.</p>
       <form
         className="mt-8 space-y-4"
         onSubmit={form.handleSubmit(async (values) => {
           try {
-            await login.mutateAsync(values);
+            await login.mutateAsync({
+              identifier: values.identifier.trim(),
+              password: values.password,
+            });
             toast.success('Signed in');
             nav(next);
           } catch (err) {
@@ -51,9 +54,17 @@ export function LoginPage() {
         })}
       >
         <div>
-          <Label htmlFor="email">Email</Label>
-          <Input id="email" type="email" className="mt-1" autoComplete="email" {...form.register('email')} />
-          <FieldError>{form.formState.errors.email?.message}</FieldError>
+          <Label htmlFor="identifier">Email or mobile number</Label>
+          <Input
+            id="identifier"
+            type="text"
+            inputMode="email"
+            className="mt-1"
+            autoComplete="username"
+            placeholder="you@email.com or 98XXXXXXXX"
+            {...form.register('identifier')}
+          />
+          <FieldError>{form.formState.errors.identifier?.message}</FieldError>
         </div>
         <div>
           <Label htmlFor="password">Password</Label>
@@ -100,7 +111,7 @@ export function RegisterPage() {
           try {
             await registerMut.mutateAsync({
               ...values,
-              phone: values.phone?.trim() || '',
+              phone: values.phone.trim(),
             });
             toast.success('Account created');
             nav(next);
@@ -138,8 +149,9 @@ export function RegisterPage() {
           <FieldError>{form.formState.errors.email?.message}</FieldError>
         </div>
         <div>
-          <Label htmlFor="phone">Phone</Label>
-          <Input id="phone" className="mt-1" autoComplete="tel" {...form.register('phone')} />
+          <Label htmlFor="phone">Mobile number</Label>
+          <Input id="phone" className="mt-1" autoComplete="tel" inputMode="tel" placeholder="98XXXXXXXX" {...form.register('phone')} />
+          <FieldError>{form.formState.errors.phone?.message}</FieldError>
         </div>
         <div>
           <Label htmlFor="password">Password</Label>
