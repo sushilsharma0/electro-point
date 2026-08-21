@@ -67,3 +67,40 @@ export function setCompareIds(ids) {
   }
   return next;
 }
+
+const POPUP_KEY = 'ep_home_popups';
+const DAY_MS = 86400000;
+
+export function getPopupDismissals() {
+  try {
+    const raw = localStorage.getItem(POPUP_KEY);
+    const data = raw ? JSON.parse(raw) : {};
+    return data && typeof data === 'object' ? data : {};
+  } catch {
+    return {};
+  }
+}
+
+export function markPopupDismissed(id) {
+  if (!id) return;
+  const next = { ...getPopupDismissals(), [id]: Date.now() };
+  try {
+    localStorage.setItem(POPUP_KEY, JSON.stringify(next));
+  } catch {
+    /* quota */
+  }
+}
+
+export function popupIsDue(popup, dismissed, now = Date.now()) {
+  if (!popup?.id) return false;
+  if (popup.frequency === 'always') return true;
+  const at = dismissed?.[popup.id];
+  if (at == null) return true;
+  if (popup.frequency === 'daily') return now - Number(at) >= DAY_MS;
+  return false;
+}
+
+export function dueHomepagePopups(popups) {
+  const dismissed = getPopupDismissals();
+  return (popups || []).filter((p) => popupIsDue(p, dismissed));
+}

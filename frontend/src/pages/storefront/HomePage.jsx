@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowRight, BadgeCheck, Package, Shield, Truck } from 'lucide-react';
@@ -6,7 +6,7 @@ import { cn } from '@/lib/cn';
 import { catalogApi, listFrom } from '@/lib/api';
 import { formatNpr } from '@/lib/money';
 import { idOf, PLACEHOLDER_IMAGES, productImage } from '@/lib/product';
-import { getRecentlyViewed } from '@/lib/storage';
+import { dueHomepagePopups, getRecentlyViewed } from '@/lib/storage';
 import { useReducedMotion } from '@/hooks/useMedia';
 import { useSettings } from '@/hooks/useCatalog';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ import { toast } from 'sonner';
 import { WithTooltip } from '@/components/ui/tooltip';
 import { HomeSkeleton } from '@/components/ui/skeleton';
 import { HeroCarousel } from '@/components/home/HeroCarousel';
+import { HomePromoModals } from '@/components/home/HomePromoModals';
 
 const ProductViewer3D = lazy(() => import('@/components/three/ProductViewer3D'));
 
@@ -33,7 +34,8 @@ function useProductList(params, key) {
 }
 
 export function HomePage() {
-  const { settings } = useSettings();
+  const { settings, query: settingsQuery } = useSettings();
+  const [promoDone, setPromoDone] = useState(false);
   const reduced = useReducedMotion();
   const featured = useProductList({ sort: 'featured', limit: 8 }, 'hero');
   const best = useProductList({ sort: 'bestseller', limit: 8 }, 'best');
@@ -73,8 +75,21 @@ export function HomePage() {
   });
   const recent = listFrom(recentQ.data?.products || recentQ.data);
   const homeLoading = (!selectedHero.length && featured.isLoading) || cats.isLoading || best.isLoading;
+  const duePopups = useMemo(() => dueHomepagePopups(settings.homepagePopups), [settings.homepagePopups]);
+  const settingsReady = !settingsQuery.isPending;
+  const holdForPromo = settingsReady && duePopups.length && !promoDone;
+  const [showHome, setShowHome] = useState(false);
 
-  if (homeLoading) return <HomeSkeleton />;
+  useEffect(() => {
+    const gated = !settingsReady || holdForPromo || homeLoading;
+    if (gated) {
+      setShowHome(false);
+      return undefined;
+    }
+    const wait = duePopups.length ? 280 : 0;
+    const t = window.setTimeout(() => setShowHome(true), wait);
+    return () => window.clearTimeout(t);
+  }, [settingsReady, holdForPromo, homeLoading, duePopups.length]);
 
   return (
     <>
@@ -84,6 +99,11 @@ export function HomePage() {
         canonical="/"
         jsonLd={orgJsonLd(settings)}
       />
+      {holdForPromo ? (
+        <HomePromoModals popups={settings.homepagePopups} onComplete={() => setPromoDone(true)} />
+      ) : null}
+      {showHome ? (
+        <>
       {showHero ? (
         <HeroCarousel
           products={heroSlides}
@@ -117,6 +137,10 @@ export function HomePage() {
         </section>
       ) : null}
       <Newsletter />
+        </>
+      ) : (
+        <HomeSkeleton />
+      )}
     </>
   );
 }

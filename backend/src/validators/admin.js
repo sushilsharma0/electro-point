@@ -214,6 +214,27 @@ export const settingsUpdateSchema = body({
       link: z.string().max(300).optional(),
     })
     .optional(),
+  homepagePopups: z
+    .array(
+      z.object({
+        id: z.string().trim().min(1).max(40),
+        enabled: z.boolean().optional(),
+        kicker: z.string().max(80).optional().default(''),
+        title: z.string().max(120).optional().default(''),
+        body: z.string().max(2000).optional().default(''),
+        images: z.array(z.string().trim().max(500)).max(8).optional().default([]),
+        ctaLabel: z.string().max(40).optional().default(''),
+        ctaHref: z.string().max(300).optional().default(''),
+        includeSaleProducts: z.boolean().optional(),
+        productIds: z.array(objectId).max(8).optional().default([]),
+        couponCodes: z.array(z.string().trim().max(40)).max(8).optional().default([]),
+        delayMs: z.coerce.number().int().min(0).max(15000).optional(),
+        frequency: z.enum(['once', 'daily', 'always']).optional(),
+        sort: z.coerce.number().int().optional(),
+      }),
+    )
+    .max(8)
+    .optional(),
   contentPages: contentPagesSchema.optional(),
   maintenanceMode: z.boolean().optional(),
 });

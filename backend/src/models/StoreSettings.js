@@ -10,6 +10,26 @@ const shippingSchema = new mongoose.Schema(
   { _id: false },
 );
 
+const homepagePopupSchema = new mongoose.Schema(
+  {
+    id: { type: String, required: true },
+    enabled: { type: Boolean, default: true },
+    kicker: { type: String, default: '' },
+    title: { type: String, default: '' },
+    body: { type: String, default: '' },
+    images: { type: [String], default: [] },
+    ctaLabel: { type: String, default: '' },
+    ctaHref: { type: String, default: '' },
+    includeSaleProducts: { type: Boolean, default: false },
+    productIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
+    couponCodes: { type: [String], default: [] },
+    delayMs: { type: Number, default: 600, min: 0, max: 15000 },
+    frequency: { type: String, enum: ['once', 'daily', 'always'], default: 'once' },
+    sort: { type: Number, default: 0 },
+  },
+  { _id: false },
+);
+
 const storeSettingsSchema = new mongoose.Schema(
   {
     key: { type: String, default: 'store', unique: true },
@@ -74,6 +94,7 @@ const storeSettingsSchema = new mongoose.Schema(
       text: { type: String, default: '' },
       link: { type: String, default: '' },
     },
+    homepagePopups: { type: [homepagePopupSchema], default: [] },
     contentPages: { type: mongoose.Schema.Types.Mixed, default: {} },
     maintenanceMode: { type: Boolean, default: false },
   },

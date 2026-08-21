@@ -114,5 +114,6 @@ export const DEFAULT_SETTINGS = {
   },
   heroProducts: [],
   contentPages: {},
+  homepagePopups: [],
   maintenanceMode: false,
 };

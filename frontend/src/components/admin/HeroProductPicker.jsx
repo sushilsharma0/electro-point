@@ -10,7 +10,7 @@ import { ProductNameCell } from '@/components/product/ProductThumb';
 import { idOf, productImage } from '@/lib/product';
 import { cn } from '@/lib/cn';
 
-const MAX_HERO = 8;
+const DEFAULT_MAX = 8;
 
 function asId(value) {
   if (value == null || value === '') return '';
@@ -19,7 +19,23 @@ function asId(value) {
   return id ? String(id) : '';
 }
 
-export function HeroProductPicker({ ids = [], products: savedProducts = [], autoplayMs = 6000, onChange }) {
+export function HeroProductPicker({
+  ids = [],
+  products: savedProducts = [],
+  autoplayMs = 6000,
+  onChange,
+  max = DEFAULT_MAX,
+  cacheKey = 'hero',
+  title = 'Homepage hero carousel',
+  description,
+  emptyHint,
+  showPreview = true,
+}) {
+  const cap = max || DEFAULT_MAX;
+  const hint =
+    description ||
+    `Pick up to ${cap} published products. They rotate in this order on the storefront hero.`;
+  const empty = emptyHint || 'No products selected. Featured catalog items are used until you add slides.';
   const [q, setQ] = useState('');
   const [cache, setCache] = useState({});
   const term = useDebounce(q, 250);
@@ -42,7 +58,7 @@ export function HeroProductPicker({ ids = [], products: savedProducts = [], auto
   }, [savedProducts]);
 
   const selectedQuery = useQuery({
-    queryKey: ['admin-hero-selected', selectedIds],
+    queryKey: ['admin-picker-selected', cacheKey, selectedIds],
     queryFn: async () => {
       const rows = await Promise.all(selectedIds.map((id) => adminApi.product(id).catch(() => null)));
       return selectedIds.map((id, i) => {
@@ -86,7 +102,7 @@ export function HeroProductPicker({ ids = [], products: savedProducts = [], auto
 
   const emit = (nextIds, extra) => {
     if (extra) remember(extra);
-    const unique = [...new Set(nextIds.map(asId).filter(Boolean))].slice(0, MAX_HERO);
+    const unique = [...new Set(nextIds.map(asId).filter(Boolean))].slice(0, cap);
     const products = unique.map((id) => {
       if (extra && asId(extra) === id) return extra;
       return cache[id] || savedProducts.find((p) => asId(p) === id) || { _id: id };
@@ -104,20 +120,20 @@ export function HeroProductPicker({ ids = [], products: savedProducts = [], auto
     emit(next);
   };
 
+  const canAdd = !atCap(selectedIds, cap);
+
   return (
     <div className="space-y-4 border border-border p-4">
       <div>
-        <h2 className="font-display text-lg font-semibold">Homepage hero carousel</h2>
-        <p className="mt-1 text-sm text-muted">
-          Pick up to {MAX_HERO} published products. They rotate in this order on the storefront hero.
-        </p>
+        <h2 className="font-display text-lg font-semibold">{title}</h2>
+        <p className="mt-1 text-sm text-muted">{hint}</p>
       </div>
 
       <div>
         <Label>Added products</Label>
         {selectedIds.length ? (
           <div className="mt-2 space-y-3">
-            <PickerCarousel products={selected} autoplayMs={autoplayMs} onRemove={remove} />
+            {showPreview ? <PickerCarousel products={selected} autoplayMs={autoplayMs} onRemove={remove} /> : null}
             <ul className="divide-y divide-border border border-border">
               {selected.map((p, i) => (
                 <li key={asId(p) || i} className="flex items-center gap-2 px-3 py-2">
@@ -154,17 +170,15 @@ export function HeroProductPicker({ ids = [], products: savedProducts = [], auto
             </ul>
           </div>
         ) : (
-          <p className="mt-2 text-sm text-muted">
-            No products selected. Featured catalog items are used until you add slides.
-          </p>
+          <p className="mt-2 text-sm text-muted">{empty}</p>
         )}
       </div>
 
-      {selectedIds.length < MAX_HERO ? (
+      {canAdd ? (
         <div>
-          <Label htmlFor="hero-search">Add a product</Label>
+          <Label htmlFor={`picker-search-${cacheKey}`}>Add a product</Label>
           <Input
-            id="hero-search"
+            id={`picker-search-${cacheKey}`}
             className="mt-1"
             placeholder="Search name, brand, SKU"
             value={q}
@@ -198,6 +212,10 @@ export function HeroProductPicker({ ids = [], products: savedProducts = [], auto
       ) : null}
     </div>
   );
+}
+
+function atCap(list, max) {
+  return (list || []).length >= max;
 }
 
 function PickerCarousel({ products = [], autoplayMs = 6000, onRemove }) {

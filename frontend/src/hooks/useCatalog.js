@@ -26,6 +26,7 @@ export function useSettings() {
       contact: { ...DEFAULT_SETTINGS.contact, ...raw.contact },
       homepage: { ...DEFAULT_SETTINGS.homepage, ...raw.homepage },
       heroProducts: Array.isArray(raw.heroProducts) ? raw.heroProducts : DEFAULT_SETTINGS.heroProducts,
+      homepagePopups: Array.isArray(raw.homepagePopups) ? raw.homepagePopups : [],
       contentPages: mergeContentPages(raw.contentPages),
     },
     query,

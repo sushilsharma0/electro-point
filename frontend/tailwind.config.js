@@ -96,6 +96,20 @@ export default {
         'sheet-bottom-out': { from: { transform: 'translateY(0)' }, to: { transform: 'translateY(100%)' } },
         'sheet-top-in': { from: { transform: 'translateY(-100%)' }, to: { transform: 'translateY(0)' } },
         'sheet-top-out': { from: { transform: 'translateY(0)' }, to: { transform: 'translateY(-100%)' } },
+        'popup-overlay-in': { from: { opacity: '0' }, to: { opacity: '1' } },
+        'popup-overlay-out': { from: { opacity: '1' }, to: { opacity: '0' } },
+        'popup-in': {
+          from: { opacity: '0', transform: 'translate(-50%, calc(-50% + 18px))' },
+          to: { opacity: '1', transform: 'translate(-50%, -50%)' },
+        },
+        'popup-out': {
+          from: { opacity: '1', transform: 'translate(-50%, -50%)' },
+          to: { opacity: '0', transform: 'translate(-50%, calc(-50% + 12px))' },
+        },
+        'popup-swap': {
+          from: { opacity: '0', transform: 'translateY(10px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -110,6 +124,11 @@ export default {
         'sheet-bottom-out': 'sheet-bottom-out 0.2s cubic-bezier(0.2, 0, 0, 1)',
         'sheet-top-in': 'sheet-top-in 0.22s cubic-bezier(0.2, 0, 0, 1)',
         'sheet-top-out': 'sheet-top-out 0.2s cubic-bezier(0.2, 0, 0, 1)',
+        'popup-overlay-in': 'popup-overlay-in 0.22s cubic-bezier(0.2, 0, 0, 1)',
+        'popup-overlay-out': 'popup-overlay-out 0.2s cubic-bezier(0.2, 0, 0, 1)',
+        'popup-in': 'popup-in 0.24s cubic-bezier(0.2, 0, 0, 1)',
+        'popup-out': 'popup-out 0.2s cubic-bezier(0.2, 0, 0, 1)',
+        'popup-swap': 'popup-swap 0.22s cubic-bezier(0.2, 0, 0, 1)',
       },
     },
   },
