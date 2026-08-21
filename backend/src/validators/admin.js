@@ -144,12 +144,14 @@ export const settingsUpdateSchema = body({
   shipping: z
     .array(
       z.object({
-        code: z.string().min(1),
-        name: z.string().min(1),
+        code: z.string().trim().min(1).max(40),
+        name: z.string().trim().min(1).max(80),
         pricePaisa: z.coerce.number().int().min(0),
-        eta: z.string().optional().default(''),
+        eta: z.string().trim().max(80).optional().default(''),
       }),
     )
+    .min(1)
+    .max(12)
     .optional(),
   taxPercent: z.coerce.number().min(0).max(100).optional(),
   payments: z

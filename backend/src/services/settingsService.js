@@ -92,12 +92,21 @@ export async function adminUpdate(payload) {
     payload.homepage = next;
   }
   delete payload.heroProducts;
+  if (Array.isArray(payload.shipping)) {
+    payload.shipping = payload.shipping.map((row) => ({
+      code: String(row.code || '').trim(),
+      name: String(row.name || '').trim(),
+      pricePaisa: Math.max(0, Math.round(Number(row.pricePaisa) || 0)),
+      eta: String(row.eta || '').trim(),
+    }));
+  }
   if (payload.contentPages && typeof payload.contentPages === 'object') {
     const current = s.contentPages && typeof s.contentPages === 'object' ? s.contentPages : {};
     payload.contentPages = { ...current, ...payload.contentPages };
   }
   Object.assign(s, payload);
   if (payload.homepage) s.markModified('homepage');
+  if (payload.shipping) s.markModified('shipping');
   if (payload.contentPages) s.markModified('contentPages');
   await s.save();
   return adminGet();

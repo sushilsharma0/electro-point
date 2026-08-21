@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Trash2, Minus, Plus, Copy, Pencil } from 'lucide-react';
 import { adminApi, listFrom } from '@/lib/api';
-import { formatNpr } from '@/lib/money';
+import { formatNpr, nprToPaisa, paisaToNpr } from '@/lib/money';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,6 +17,7 @@ import { OrderItemList } from '@/components/order/OrderItemList';
 import { ProductNameCell } from '@/components/product/ProductThumb';
 import { AdminShipmentForm, ORDER_STATUSES } from '@/components/order/AdminShipmentForm';
 import { HeroProductPicker } from '@/components/admin/HeroProductPicker';
+import { ShippingMethodsEditor } from '@/components/admin/ShippingMethodsEditor';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { variantLabel } from '@/lib/product';
 import { formatOrderStamp, paymentLabel } from '@/lib/orderTracking';
@@ -865,7 +866,10 @@ export function AdminSettingsPage() {
   const q = useQuery({ queryKey: ['admin-settings'], queryFn: adminApi.settings });
   const [form, setForm] = useState(null);
   useEffect(() => {
-    if (q.data) setForm(q.data.settings || q.data);
+    if (!q.data) return;
+    const s = q.data.settings || q.data;
+    const shipping = Array.isArray(s.shipping) && s.shipping.length ? s.shipping : [];
+    setForm({ ...s, shipping });
   }, [q.data]);
   const mut = useMutation({
     mutationFn: adminApi.updateSettings,
@@ -891,7 +895,17 @@ export function AdminSettingsPage() {
       className="max-w-3xl space-y-6"
       onSubmit={(e) => {
         e.preventDefault();
-        mut.mutate(form);
+        const shipping = (form.shipping || []).map((row) => ({
+          code: row.code,
+          name: row.name,
+          pricePaisa: nprToPaisa(row.priceNpr != null ? row.priceNpr : paisaToNpr(row.pricePaisa ?? 0)),
+          eta: row.eta || '',
+        }));
+        if (!shipping.length) {
+          toast.error('Add at least one shipping method');
+          return;
+        }
+        mut.mutate({ ...form, shipping });
       }}
     >
       <Seo title="Settings" noindex />
@@ -964,6 +978,10 @@ export function AdminSettingsPage() {
           />
         </label>
       </div>
+      <ShippingMethodsEditor
+        value={form.shipping}
+        onChange={(shipping) => setForm({ ...form, shipping })}
+      />
       <label className="flex items-center justify-between text-sm">
         eSewa enabled
         <Switch
