@@ -13,6 +13,7 @@ export async function getStoreSettings() {
         { code: 'standard', name: 'Standard delivery', pricePaisa: 15000, eta: '3–5 days' },
         { code: 'express', name: 'Express delivery', pricePaisa: 35000, eta: '1–2 days' },
       ],
+      countryCodes: [{ dial: '977', label: 'Nepal', iso: 'NP' }],
     });
   }
   return settings;

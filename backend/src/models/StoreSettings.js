@@ -10,6 +10,15 @@ const shippingSchema = new mongoose.Schema(
   { _id: false },
 );
 
+const countryCodeSchema = new mongoose.Schema(
+  {
+    dial: { type: String, required: true, trim: true, maxlength: 4 },
+    label: { type: String, required: true, trim: true, maxlength: 80 },
+    iso: { type: String, trim: true, uppercase: true, maxlength: 2, default: '' },
+  },
+  { _id: false },
+);
+
 const homepagePopupSchema = new mongoose.Schema(
   {
     id: { type: String, required: true },
@@ -49,6 +58,10 @@ const storeSettingsSchema = new mongoose.Schema(
     },
     currency: { type: String, default: 'NPR' },
     shipping: { type: [shippingSchema], default: [] },
+    countryCodes: {
+      type: [countryCodeSchema],
+      default: [{ dial: '977', label: 'Nepal', iso: 'NP' }],
+    },
     taxPercent: { type: Number, default: 0, min: 0, max: 100 },
     payments: {
       esewaEnabled: { type: Boolean, default: true },

@@ -14,7 +14,16 @@ import {
 import { COOKIE } from '../utils/cookies.js';
 import { isMailConfigured, sendPasswordReset } from './emailService.js';
 import { mergeGuestCart } from './cartService.js';
-import { localPhoneDigits, isNepalMobile, normalizePhone, phoneLookupVariants } from '../utils/phone.js';
+import { getStoreSettings } from './pricingService.js';
+import {
+  countryCodesOrDefault,
+  dialList,
+  isNationalMobile,
+  localPhoneDigits,
+  normalizeDial,
+  normalizePhone,
+  phoneLookupVariants,
+} from '../utils/phone.js';
 
 const RESET_TTL_MS = 30 * 60 * 1000;
 
@@ -28,11 +37,18 @@ function refreshHashField(audience) {
   return audience === AUDIENCE.ADMIN ? 'adminRefreshTokenHash' : 'refreshTokenHash';
 }
 
-export async function register({ name, email, password, phone, guestId }) {
+export async function register({ name, email, password, phone, countryCode, guestId }) {
   const normalizedEmail = String(email || '').trim().toLowerCase();
   if (!normalizedEmail) throw ApiError.badRequest('Email is required');
   if (!String(name || '').trim()) throw ApiError.badRequest('Name is required');
-  if (!isNepalMobile(phone)) throw ApiError.badRequest('Enter a 10-digit mobile number');
+  const settings = await getStoreSettings();
+  const codes = countryCodesOrDefault(settings.countryCodes);
+  const dial = normalizeDial(countryCode) || codes[0].dial;
+  if (!codes.some((row) => row.dial === dial)) {
+    throw ApiError.badRequest('Select a valid country code');
+  }
+  if (!isNationalMobile(phone, dial)) throw ApiError.badRequest('Enter a valid mobile number');
+  const national = normalizePhone(phone, dial);
   const exists = await User.findOne({ email: normalizedEmail });
   if (exists) throw ApiError.conflict('Email already registered');
   const passwordHash = await bcrypt.hash(password, env.BCRYPT_COST);
@@ -41,7 +57,8 @@ export async function register({ name, email, password, phone, guestId }) {
     user = await User.create({
       name,
       email: normalizedEmail,
-      phone: normalizePhone(phone),
+      phone: national,
+      countryCode: dial,
       passwordHash,
       role: 'customer',
     });
@@ -96,12 +113,14 @@ async function findCustomerForLogin(raw) {
   if (raw.includes('@')) {
     return User.findOne({ email: raw.toLowerCase() }).select(select);
   }
-  const variants = phoneLookupVariants(raw);
+  const settings = await getStoreSettings();
+  const dials = dialList(settings.countryCodes);
+  const variants = phoneLookupVariants(raw, dials);
   if (!variants.length) return null;
   const exact = await User.findOne({ phone: { $in: variants } }).select(select);
   if (exact) return exact;
-  const local = localPhoneDigits(raw);
-  if (local.length !== 10) return null;
+  const local = localPhoneDigits(raw, dials);
+  if (local.length < 7) return null;
   const pattern = new RegExp(`^\\D*${local.split('').join('\\D*')}\\D*$`);
   const matches = await User.find({ phone: { $ne: '', $regex: pattern } }).select(select);
   if (matches.length !== 1) return null;

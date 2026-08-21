@@ -16,6 +16,7 @@ import { OrderStatusBadge } from '@/components/order/OrderTracker';
 import { formatOrderDay, formatOrderStamp, formatStatusLabel } from '@/lib/orderTracking';
 import { AdminEmpty, AdminHeader, AdminLoading, StatCard, StatusPill } from '@/components/admin/AdminChrome';
 import { WithTooltip } from '@/components/ui/tooltip';
+import { formatStoredPhone } from '@/lib/phone';
 
 export function AdminCustomersPage() {
   const [q, setQ] = useState('');
@@ -81,7 +82,7 @@ export function AdminCustomersPage() {
                     {c.name || '—'}
                   </Link>
                   <p className="text-xs text-muted">{c.email}</p>
-                  {c.phone ? <p className="text-xs text-muted">{c.phone}</p> : null}
+                  {c.phone ? <p className="text-xs text-muted">{formatStoredPhone(c)}</p> : null}
                 </TableCell>
                 <TableCell>
                   <StatusPill status={c.status} />
@@ -168,7 +169,7 @@ export function AdminCustomerDetailPage() {
           <dl className="mt-4 space-y-3 text-sm">
             <div>
               <dt className="text-muted">Phone</dt>
-              <dd className="mt-1">{user.phone || '—'}</dd>
+              <dd className="mt-1">{formatStoredPhone(user) || '—'}</dd>
             </div>
             <div>
               <dt className="text-muted">Last login</dt>

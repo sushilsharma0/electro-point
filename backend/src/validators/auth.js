@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { body } from './common.js';
-import { isNepalMobile } from '../utils/phone.js';
+import { isNationalMobile } from '../utils/phone.js';
 
 const password = z
   .string()
@@ -10,16 +10,30 @@ const password = z
   .regex(/[a-z]/, 'Password must include a lowercase letter')
   .regex(/[0-9]/, 'Password must include a number');
 
-export const registerSchema = body({
-  name: z.string().trim().min(2, 'Name is required').max(120),
-  email: z.string().trim().min(1, 'Email is required').email().toLowerCase(),
-  password,
-  phone: z
-    .string({ required_error: 'Mobile number is required' })
-    .trim()
-    .min(1, 'Mobile number is required')
-    .max(20)
-    .refine(isNepalMobile, 'Enter a 10-digit mobile number'),
+export const registerSchema = z.object({
+  body: z
+    .object({
+      name: z.string().trim().min(2, 'Name is required').max(120),
+      email: z.string().trim().min(1, 'Email is required').email().toLowerCase(),
+      password,
+      countryCode: z.string().trim().max(4).optional().default(''),
+      phone: z
+        .string({ required_error: 'Mobile number is required' })
+        .trim()
+        .min(1, 'Mobile number is required')
+        .max(20),
+    })
+    .superRefine((data, ctx) => {
+      if (!isNationalMobile(data.phone, data.countryCode)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Enter a valid mobile number',
+          path: ['phone'],
+        });
+      }
+    }),
+  query: z.record(z.any()).optional().default({}),
+  params: z.record(z.any()).optional().default({}),
 });
 
 export const loginSchema = z.object({

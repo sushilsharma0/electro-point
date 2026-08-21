@@ -54,6 +54,8 @@ describe('auth and admin authorization', { timeout: 120_000 }, () => {
     assert.equal(register.status, 201);
     assert.equal(register.body.success, true);
     assert.equal(register.body.data.user.role, 'customer');
+    assert.equal(register.body.data.user.phone, '9800000000');
+    assert.equal(register.body.data.user.countryCode, '977');
     assert.ok(register.headers['set-cookie'].some((c) => c.startsWith('ep_access=')));
 
     const me = await api.get('/api/v1/auth/me');
@@ -74,6 +76,28 @@ describe('auth and admin authorization', { timeout: 120_000 }, () => {
     });
     assert.equal(phoneLogin.status, 200, phoneLogin.body?.error?.message);
     assert.equal(phoneLogin.body.data.user.email, email);
+
+    const api4 = client(app);
+    await api4.initCsrf();
+    const localLogin = await api4.post('/api/v1/auth/login').send({
+      identifier: '9800000000',
+      password: 'Customer#12345',
+    });
+    assert.equal(localLogin.status, 200, localLogin.body?.error?.message);
+    assert.equal(localLogin.body.data.user.email, email);
+  });
+
+  it('rejects a country code that is not enabled', async () => {
+    const api = client(app);
+    await api.initCsrf();
+    const res = await api.post('/api/v1/auth/register').send({
+      name: 'Other Code',
+      email: `other${Date.now()}@example.com`,
+      password: 'Customer#12345',
+      phone: '9800000099',
+      countryCode: '91',
+    });
+    assert.equal(res.status, 400);
   });
 
   it('requires name, email, mobile number, and password to register', async () => {

@@ -1,29 +1,40 @@
+import { useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '@/hooks/useAuth';
+import { useSettings } from '@/hooks/useCatalog';
 import { authApi } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label, FieldError } from '@/components/ui/label';
+import { PhoneCountryField } from '@/components/ui/PhoneCountryField';
 import { Container } from '@/components/layout/Container';
 import { Seo } from '@/components/Seo';
 import { toast } from 'sonner';
 import { StaffLoginLink } from '@/components/layout/StaffLoginLink';
-import { PASSWORD_HINT, applyApiFieldErrors, apiErrorMessage, nepalMobileSchema, passwordSchema } from '@/lib/validation';
+import { PASSWORD_HINT, applyApiFieldErrors, apiErrorMessage, passwordSchema } from '@/lib/validation';
+import { DEFAULT_COUNTRY_CODES, isNationalMobile } from '@/lib/phone';
 
 const loginSchema = z.object({
   identifier: z.string().trim().min(3, 'Enter your email or mobile number'),
   password: z.string().min(1, 'Enter your password'),
 });
 
-const registerSchema = z.object({
-  name: z.string().trim().min(2, 'Name is required'),
-  email: z.string().trim().min(1, 'Email is required').email('Enter a valid email'),
-  phone: nepalMobileSchema(z),
-  password: passwordSchema(z),
-});
+const registerSchema = z
+  .object({
+    name: z.string().trim().min(2, 'Name is required'),
+    email: z.string().trim().min(1, 'Email is required').email('Enter a valid email'),
+    countryCode: z.string().trim().min(1, 'Select a country code'),
+    phone: z.string().trim().min(1, 'Mobile number is required'),
+    password: passwordSchema(z),
+  })
+  .superRefine((data, ctx) => {
+    if (!isNationalMobile(data.phone, data.countryCode)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Enter a valid mobile number', path: ['phone'] });
+    }
+  });
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -37,7 +48,7 @@ export function LoginPage() {
     <Container className="max-w-md py-16">
       <Seo title="Sign in" canonical="/login" noindex />
       <h1 className="font-display text-h1">Sign in</h1>
-      <p className="mt-2 text-sm text-muted">Sign in with the email or mobile number on your account. Guests can browse; an account is required for checkout and wishlist.</p>
+      <p className="mt-2 text-sm text-muted">Sign in with the email or mobile number on your account. Country code is not needed. Guests can browse; an account is required for checkout and wishlist.</p>
       <form
         className="mt-8 space-y-4"
         onSubmit={form.handleSubmit(async (values) => {
@@ -96,10 +107,23 @@ export function LoginPage() {
 
 export function RegisterPage() {
   const { register: registerMut } = useAuth();
+  const { settings } = useSettings();
   const nav = useNavigate();
   const [sp] = useSearchParams();
   const next = sp.get('next') || '/account';
-  const form = useForm({ resolver: zodResolver(registerSchema), defaultValues: { name: '', email: '', password: '', phone: '' } });
+  const codes = settings.countryCodes?.length ? settings.countryCodes : DEFAULT_COUNTRY_CODES;
+  const form = useForm({
+    resolver: zodResolver(registerSchema),
+    defaultValues: { name: '', email: '', password: '', phone: '', countryCode: codes[0]?.dial || '977' },
+  });
+
+  useEffect(() => {
+    const allowed = codes.map((row) => row.dial);
+    const current = form.getValues('countryCode');
+    if (!current || !allowed.includes(current)) {
+      form.setValue('countryCode', codes[0]?.dial || '977');
+    }
+  }, [codes, form]);
 
   return (
     <Container className="max-w-md py-16">
@@ -111,6 +135,7 @@ export function RegisterPage() {
           try {
             await registerMut.mutateAsync({
               ...values,
+              countryCode: values.countryCode || codes[0]?.dial,
               phone: values.phone.trim(),
             });
             toast.success('Account created');
@@ -150,8 +175,13 @@ export function RegisterPage() {
         </div>
         <div>
           <Label htmlFor="phone">Mobile number</Label>
-          <Input id="phone" className="mt-1" autoComplete="tel" inputMode="tel" placeholder="98XXXXXXXX" {...form.register('phone')} />
-          <FieldError>{form.formState.errors.phone?.message}</FieldError>
+          <PhoneCountryField
+            id="phone"
+            codes={codes}
+            control={form.control}
+            register={form.register('phone')}
+          />
+          <FieldError>{form.formState.errors.phone?.message || form.formState.errors.countryCode?.message}</FieldError>
         </div>
         <div>
           <Label htmlFor="password">Password</Label>

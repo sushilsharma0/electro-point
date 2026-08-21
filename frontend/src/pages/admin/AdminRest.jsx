@@ -18,6 +18,8 @@ import { ProductNameCell } from '@/components/product/ProductThumb';
 import { AdminShipmentForm, ORDER_STATUSES } from '@/components/order/AdminShipmentForm';
 import { HeroProductPicker } from '@/components/admin/HeroProductPicker';
 import { ShippingMethodsEditor } from '@/components/admin/ShippingMethodsEditor';
+import { CountryCodesEditor } from '@/components/admin/CountryCodesEditor';
+import { DEFAULT_COUNTRY_CODES } from '@/lib/phone';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { variantLabel } from '@/lib/product';
 import { formatOrderStamp, paymentLabel } from '@/lib/orderTracking';
@@ -869,7 +871,8 @@ export function AdminSettingsPage() {
     if (!q.data) return;
     const s = q.data.settings || q.data;
     const shipping = Array.isArray(s.shipping) && s.shipping.length ? s.shipping : [];
-    setForm({ ...s, shipping });
+    const countryCodes = Array.isArray(s.countryCodes) && s.countryCodes.length ? s.countryCodes : DEFAULT_COUNTRY_CODES;
+    setForm({ ...s, shipping, countryCodes });
   }, [q.data]);
   const mut = useMutation({
     mutationFn: adminApi.updateSettings,
@@ -901,11 +904,22 @@ export function AdminSettingsPage() {
           pricePaisa: nprToPaisa(row.priceNpr != null ? row.priceNpr : paisaToNpr(row.pricePaisa ?? 0)),
           eta: row.eta || '',
         }));
+        const countryCodes = (form.countryCodes || [])
+          .map((row) => ({
+            dial: String(row.dial || '').replace(/\D/g, '').slice(0, 4),
+            label: String(row.label || '').trim(),
+            iso: String(row.iso || '').trim().toUpperCase().slice(0, 2),
+          }))
+          .filter((row) => row.dial && row.label);
         if (!shipping.length) {
           toast.error('Add at least one shipping method');
           return;
         }
-        mut.mutate({ ...form, shipping });
+        if (!countryCodes.length) {
+          toast.error('Add at least one country code');
+          return;
+        }
+        mut.mutate({ ...form, shipping, countryCodes });
       }}
     >
       <Seo title="Settings" noindex />
@@ -981,6 +995,10 @@ export function AdminSettingsPage() {
       <ShippingMethodsEditor
         value={form.shipping}
         onChange={(shipping) => setForm({ ...form, shipping })}
+      />
+      <CountryCodesEditor
+        value={form.countryCodes}
+        onChange={(countryCodes) => setForm({ ...form, countryCodes })}
       />
       <label className="flex items-center justify-between text-sm">
         eSewa enabled

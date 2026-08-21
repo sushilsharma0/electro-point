@@ -55,6 +55,7 @@ export async function startApp() {
         { code: 'standard', name: 'Standard delivery', pricePaisa: 15000, eta: '3–5 days' },
         { code: 'express', name: 'Express', pricePaisa: 35000, eta: '1–2 days' },
       ],
+      countryCodes: [{ dial: '977', label: 'Nepal', iso: 'NP' }],
       taxPercent: 0,
       payments: { esewaEnabled: true, khaltiEnabled: true, esewaProductCode: 'EPAYTEST' },
     },

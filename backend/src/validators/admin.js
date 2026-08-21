@@ -153,6 +153,17 @@ export const settingsUpdateSchema = body({
     .min(1)
     .max(12)
     .optional(),
+  countryCodes: z
+    .array(
+      z.object({
+        dial: z.string().trim().min(1).max(4),
+        label: z.string().trim().min(1).max(80),
+        iso: z.string().trim().max(2).optional().default(''),
+      }),
+    )
+    .min(1)
+    .max(20)
+    .optional(),
   taxPercent: z.coerce.number().min(0).max(100).optional(),
   payments: z
     .object({

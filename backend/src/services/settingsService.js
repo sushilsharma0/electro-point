@@ -3,6 +3,7 @@ import { getStoreSettings, couponEligibilityError } from './pricingService.js';
 import { Product } from '../models/Product.js';
 import { Coupon } from '../models/Coupon.js';
 import { paisaToNprString } from '../utils/money.js';
+import { countryCodesOrDefault, sanitizeCountryCodes } from '../utils/phone.js';
 
 const HERO_SELECT = 'name slug brand shortDescription pricePaisa salePricePaisa images thumbnail specGroups';
 
@@ -28,6 +29,7 @@ export async function publicSettings() {
     social: s.social,
     currency: s.currency,
     shipping: s.shipping,
+    countryCodes: countryCodesOrDefault(s.countryCodes),
     taxPercent: s.taxPercent,
     payments: {
       esewaEnabled: s.payments?.esewaEnabled !== false,
@@ -64,6 +66,7 @@ export async function adminGet() {
     json.homepage.heroProductIds = [];
   }
   json.heroProducts = await hydrateHeroProducts(json.homepage?.heroProductIds);
+  json.countryCodes = countryCodesOrDefault(json.countryCodes);
   json.homepagePopups = await Promise.all(
     (json.homepagePopups || []).map(async (row) => {
       const productIds = (row.productIds || []).map(String);
@@ -114,6 +117,10 @@ export async function adminUpdate(payload) {
       eta: String(row.eta || '').trim(),
     }));
   }
+  if (Array.isArray(payload.countryCodes)) {
+    const next = sanitizeCountryCodes(payload.countryCodes);
+    payload.countryCodes = next.length ? next : countryCodesOrDefault([]);
+  }
   if (Array.isArray(payload.homepagePopups)) {
     payload.homepagePopups = sanitizeHomepagePopups(payload.homepagePopups);
   }
@@ -124,6 +131,7 @@ export async function adminUpdate(payload) {
   Object.assign(s, payload);
   if (payload.homepage) s.markModified('homepage');
   if (payload.shipping) s.markModified('shipping');
+  if (payload.countryCodes) s.markModified('countryCodes');
   if (payload.homepagePopups) s.markModified('homepagePopups');
   if (payload.contentPages) s.markModified('contentPages');
   await s.save();

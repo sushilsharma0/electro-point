@@ -27,6 +27,8 @@ export function useSettings() {
       homepage: { ...DEFAULT_SETTINGS.homepage, ...raw.homepage },
       heroProducts: Array.isArray(raw.heroProducts) ? raw.heroProducts : DEFAULT_SETTINGS.heroProducts,
       homepagePopups: Array.isArray(raw.homepagePopups) ? raw.homepagePopups : [],
+      countryCodes:
+        Array.isArray(raw.countryCodes) && raw.countryCodes.length ? raw.countryCodes : DEFAULT_SETTINGS.countryCodes,
       contentPages: mergeContentPages(raw.contentPages),
     },
     query,

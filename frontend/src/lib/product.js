@@ -115,5 +115,6 @@ export const DEFAULT_SETTINGS = {
   heroProducts: [],
   contentPages: {},
   homepagePopups: [],
+  countryCodes: [{ dial: '977', label: 'Nepal', iso: 'NP' }],
   maintenanceMode: false,
 };

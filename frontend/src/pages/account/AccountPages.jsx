@@ -4,6 +4,7 @@ import { Heart } from 'lucide-react';
 import { accountApi, checkoutApi, listFrom } from '@/lib/api';
 import { formatNpr } from '@/lib/money';
 import { idOf } from '@/lib/product';
+import { formatDial } from '@/lib/phone';
 import { useAuth } from '@/hooks/useAuth';
 import { useWishlist } from '@/hooks/useWishlist';
 import { useCart } from '@/hooks/useCart';
@@ -149,7 +150,14 @@ export function AccountProfilePage() {
       </div>
       <div>
         <Label htmlFor="phone">Phone</Label>
-        <Input id="phone" className="mt-1" {...form.register('phone')} />
+        <div className="mt-1 flex">
+          {user?.countryCode ? (
+            <span className="flex h-10 shrink-0 items-center rounded-l-md border border-r-0 border-border bg-muted-bg px-3 text-sm tabular">
+              {formatDial(user.countryCode)}
+            </span>
+          ) : null}
+          <Input id="phone" className={user?.countryCode ? 'rounded-l-none' : ''} {...form.register('phone')} />
+        </div>
       </div>
       <p className="text-sm text-muted">{user?.email}</p>
       <Button type="submit">Save</Button>
